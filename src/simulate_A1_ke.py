@@ -416,7 +416,7 @@ def extractC(cell, point):
 ## Data input
 
 # scenario = input('Enter Scenario (A1/B1/C1/D1/E1/G1/Customize/Test): ').upper()
-scenario = 'B1'
+scenario = 'A1'
 if scenario.startswith('CUSTOM'):
     try:
         Ua = float(input('Ambient velocity (m/s) [0.1] = ')) / UNIT_LEN
@@ -469,12 +469,12 @@ elif scenario=='A1':
     Sc = 0.67  # (0.5-1) Schmidt number, 0.5 -> too diffusive tracer 
     Ufric = 0.04 * 0.1 * Wo
     dens_deficit = 0
-    Gamma = 0.005 / (UNIT_LEN**2)  ## TODO: rename to Gamma
+    Gamma = 0.005 / (UNIT_LEN**2)
     nuh = 0.002 / (UNIT_LEN**2)
     nuv = 0.002 / (UNIT_LEN**2)
     THETA_C = 1500
     delta_t = 0.002  # 0.5 * h / Wo
-    nt = 60_000
+    nt = 45_000
 elif scenario=='B1':
     Ua = 0.1 / UNIT_LEN
     Wo = 0.5 / UNIT_LEN
@@ -927,7 +927,7 @@ for timeCounter in range(nt):
         
         tmpList = [ ]
         if ((graU > THETA_U) and (cell['yT'] <= 0.0875) and (cell['level'] < MAX_DEPTH)
-        or (graU > THETA_U2) and (0.0875 < cell['yT'] <= SURFACE) and (cell['level'] < MAX_DEPTH)):
+        or (graU > THETA_U) and (0.0875 < cell['yT'] <= SURFACE) and (cell['level'] < MAX_DEPTH)):
             # sort ascending based on the level
             search_DFS( meshU, cell, MAX_DEPTH )
             for anycell in tmpList:
