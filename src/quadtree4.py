@@ -44,8 +44,9 @@ class QTree(object):
         self.markXList = []
         self.markYList = []
         self.arrowList = []
-        self.textList = []
-        self.leafList = []          # main data
+        self.textList = []   # plotting numbers
+        self.valList = []    # storing values of variable
+        self.leafList = []      # main data
         self.cellQueue = []     # main data
         self.flux = {}      # fluxes between cells
         self.propnames = propnames
