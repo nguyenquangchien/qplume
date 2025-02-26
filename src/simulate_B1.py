@@ -1095,3 +1095,5 @@ else:
     qvscale = 5E-5
 meshU.draw(st2, grid=True, num=False, arrow=False, patches=False, quiver=True, qvscale=qvscale, extent=(0.48, 0.63, 0, 0.15))
 # Pickle file save mesh temporary failed (max recursion depth exceeded)
+
+print("End simulation")
