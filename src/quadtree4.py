@@ -514,7 +514,7 @@ class QTree(object):
                 new_patch_list.append(p)
 
             pc = matplotlib.collections.PatchCollection(new_patch_list, cmap=cmap, alpha=1.)
-            plt.colorbar(pc, shrink=0.5)  # stackoverflow.com/a/18665162
+            # plt.colorbar(pc, shrink=0.5)  # stackoverflow.com/a/18665162  # error in newer matplotlib versions
             
         if dot:
             plt.scatter(self.markXList, self.markYList)

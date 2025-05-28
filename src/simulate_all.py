@@ -25,9 +25,12 @@ Implmeenting new set of equations. u is computed from continuity eqn.
 '''
 
 import quadtree4 as quadtree4
+from tools import configurator, extractC, extractUW
+
+import time
 import numpy
 from math import sin, cos
-import time
+import matplotlib.pyplot as plt
 
 
 UNIT_LEN = 100.    # Length of unit square
@@ -37,6 +40,9 @@ THETA_U = 1E-5
 
 SURFACE = 0.5
 size_matr_seed = 2**(MAX_DEPTH - 1)
+
+export_interval = 1500
+
 
 tmpList = [ ]  # initialised here, to be used in `search_DFS`
 
@@ -51,377 +57,6 @@ def search_DFS(mesh, cell, maxDepth=None):
     tmpList.append( cell )
     return tmpList
 
-
-def configurator(mesh, cell):
-    # TODO: use a dictionary instead of multibranch if
-    nbkeys = cell['neighbors'].keys()
-    conf = 'Unknown'
-    ratio = 1.0
-    coef = (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
-    if set(nbkeys) == set(['N','S','E','W']):   # type a
-        conf = 'a'
-        ratio = 1.0     # just changed
-        coef = (1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,-4)
-        
-    if set(nbkeys) == set(['WNW','WSW','N','E','S']):   # type b
-        conf = 'bW'
-        ratio = 4.0 / 21
-        coef = (5,0,0,0,6,0,0,0,5,0,0,4,0,4,0,0,-24)
-    if set(nbkeys) == set(['NNW','NNE','E','S','W']):   # type b
-        conf = 'bN'
-        ratio = 4.0 / 21
-        coef = (0,4,0,0,5,0,0,0,6,0,0,0,5,0,0,4,-24)
-    if set(nbkeys) == set(['ENE','ESE','S','W','N']):   # type b
-        conf = 'bE'
-        ratio = 4.0 / 21
-        coef = (5,0,0,4,0,4,0,0,5,0,0,0,6,0,0,0,-24)
-    if set(nbkeys) == set(['SSE','SSW','W','N','E']):   # type b
-        conf = 'bS'
-        ratio = 4.0 / 21
-        coef = (6,0,0,0,5,0,0,4,0,4,0,0,5,0,0,0,-24)
-        
-    if set(nbkeys) == set(['NNW','NNE','ENE','ESE','S','W']):   # type c
-        conf = 'cNE'
-        ratio = 4.0 / 11
-        coef = (0,2,0,2,0,2,0,0,3,0,0,0,3,0,0,2,-14)
-        
-    if set(nbkeys) == set(['SSW','SSE','ENE','ESE','N','W']):   # type c
-        conf = 'cSE'
-        ratio = 4.0 / 11
-        coef = (3,0,0,2,0,2,0,2,0,2,0,0,3,0,0,0,-14)
-        
-    if set(nbkeys) == set(['SSW','SSE','WNW','WSW','N','E']):   # type c
-        conf = 'cSW'
-        ratio = 4.0 / 11
-        coef = (3,0,0,0,3,0,0,2,0,2,0,2,0,2,0,0,-14)
-        
-    if set(nbkeys) == set(['NNW','NNE','ENE','ESE','S','W']):   # type c
-        conf = 'cNW'
-        ratio = 4.0 / 11
-        coef = (0,2,0,2,0,0,3,0,0,0,3,0,0,2,0,2,-14)
-        
-    if set(nbkeys) == set(['WNW','WSW','ENE','ESE','S','N']):   # type d
-        conf = 'dEW'
-        ratio = 8.0 / 9
-        coef = (1,0,0,1,0,1,0,0,1,0,0,1,0,1,0,0,-6)
-        
-    if set(nbkeys) == set(['NNW','NNE','SSE','SSW','E','W']):   # type d
-        conf = 'dNS'
-        ratio = 8.0 / 9
-        coef = (0,1,0,0,1,0,1,0,0,1,0,0,1,0,1,0,-6)
-        
-    if set(nbkeys) == set(['WNW','WSW','ENE','ESE','SSW','SSE','N']):   # type e
-        conf = 'eN'
-        ratio = 8.0 / 47
-        coef = (6,0,0,5,0,5,0,4,0,4,0,5,0,5,0,0,-34)
-        
-    if set(nbkeys) == set(['WNW','WSW','NNE','NNW','SSW','SSE','E']):   # type e
-        conf = 'eE'
-        ratio = 8.0 / 47
-        coef = (0,5,0,0,6,0,0,5,0,5,0,4,0,4,0,5,-34)
-        
-    if set(nbkeys) == set(['WNW','WSW','ENE','ESE','NNW','NNE','S']):   # type e
-        conf = 'eS'
-        ratio = 8.0 / 47
-        coef = (0,4,0,4,0,5,0,5,0,0,6,0,0,5,0,5,-34)
-        
-    if set(nbkeys) == set(['NNW','NNE','ENE','ESE','SSW','SSE','W']):   # type e
-        conf = 'eW'
-        ratio = 8.0 / 47
-        coef = (0,5,0,4,0,4,0,5,0,5,0,0,6,0,0,5,-34)
-        
-    if set(nbkeys) == set(['WNW','WSW','ENE','ESE','SSW','SSE','NNW','NNE']):   # type f
-        conf = 'f'
-        ratio = 4.0 / 5
-        coef = (0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,-8)
-        
-    if ( set(nbkeys) == set(['WNW','WSW','N','NE','E','S'])
-        and cell['level'] == cell['neighbors']['NE']['level'] ):   # type g
-        conf = 'gESE'
-        ratio = 4.0 / 75
-        coef = (13,0,6,0,8,0,0,0,15,0,0,12,0,12,0,0,-66)
-        
-    if ( set(nbkeys) == set(['NNW','NNE','E','SE','S','W'])
-        and cell['level'] == cell['neighbors']['SE']['level'] ):   # type g
-        conf = 'gSSW'
-        ratio = 4.0 / 75
-        coef = (0,12,0,0,13,0,6,0,8,0,0,0,15,0,0,12,-66)
-        
-    if ( set(nbkeys) == set(['ENE','ESE','S','SW','W','N'])
-        and cell['level'] == cell['neighbors']['SW']['level'] ):   # type g
-        conf = 'gWNW'
-        ratio = 4.0 / 75
-        coef = (15,0,0,12,0,12,0,0,13,0,6,0,8,0,0,0,-66)
-        
-    if ( set(nbkeys) ==  set(['SSW','SSE','W','NW','N','E'])
-        and cell['level'] == cell['neighbors']['NW']['level'] ):   # type g
-        conf = 'gNNE'
-        ratio = 4.0 / 75
-        coef = (8,0,0,0,15,0,0,12,0,12,0,0,13,0,6,0,-66)
-        
-    if ( set(nbkeys) == set(['WNW','WSW','N','SE','E','S'])
-        and cell['level'] == cell['neighbors']['SE']['level'] ):   # type g
-        conf = 'gENE'
-        ratio = 4.0 / 75
-        coef = (15,0,0,0,8,0,6,0,13,0,0,12,0,12,0,0,-66)
-        
-    if ( set(nbkeys) == set(['NNW','NNE','E','SW','S','W'])
-        and cell['level'] == cell['neighbors']['SW']['level'] ):   # type g
-        conf = 'gSSE'
-        ratio = 4.0 / 75
-        coef = (0,12,0,0,15,0,0,0,8,0,6,0,13,0,0,12,-66)
-        
-    if ( set(nbkeys) ==  set(['ENE','ESE','S','W','NW','N'])
-        and cell['level'] == cell['neighbors']['NW']['level'] ):   # type g
-        conf = 'gWSW'
-        ratio = 4.0 / 75
-        coef = (13,0,0,12,0,12,0,0,15,0,0,0,8,0,6,0,-66)
-        
-    if ( set(nbkeys) ==  set(['SSW','SSE','W','NE','N','E'])
-        and cell['level'] == cell['neighbors']['NE']['level'] ):   # type g
-        conf = 'gNNW'
-        ratio = 4.0 / 75
-        coef = (8,0,6,0,13,0,0,12,0,12,0,0,15,0,0,0,-66)
-        
-    if ( set(nbkeys) == set(['WNW','WSW','N','NE','E','S'])
-        and cell['level'] == cell['neighbors']['NE']['level'] + 1) :   # type h
-        conf = 'hESE'
-        ratio = 4.0 / 27
-        coef = (5,0,1,0,3,0,0,0,5,0,0,4,0,4,0,0,-22)
-        
-    if ( set(nbkeys) == set(['NNW','NNE','E','SE','S','W'])
-        and cell['level'] == cell['neighbors']['SE']['level'] + 1):   # type h
-        conf = 'hSSW'
-        ratio = 4.0 / 27
-        coef = (0,4,0,0,5,0,1,0,3,0,0,0,5,0,0,4,-22)
-        
-    if ( set(nbkeys) == set(['ENE','ESE','S','SW','W','N'])
-        and cell['level'] == cell['neighbors']['SW']['level'] + 1):   # type h
-        conf = 'hWNW'
-        ratio = 4.0 / 27
-        coef = (5,0,0,4,0,4,0,0,5,0,1,0,3,0,0,0,-22)
-        
-    if ( set(nbkeys) ==  set(['SSW','SSE','W','NW','N','E'])
-        and cell['level'] == cell['neighbors']['NW']['level'] + 1):   # type h
-        conf = 'hNNE'
-        ratio = 4.0 / 27
-        coef = (3,0,0,0,5,0,0,4,0,4,0,0,5,0,1,0,-22)
-        
-    if ( set(nbkeys) == set(['WNW','WSW','N','SE','E','S'])
-        and cell['level'] == cell['neighbors']['SE']['level'] + 1):   # type h
-        conf = 'hENE'
-        ratio = 4.0 / 27
-        coef = (5,0,0,0,3,0,1,0,5,0,0,4,0,4,0,0,-22)
-        
-    if ( set(nbkeys) == set(['NNW','NNE','E','SW','S','W'])
-        and cell['level'] == cell['neighbors']['SW']['level'] + 1):   # type h
-        conf = 'hSSE'
-        ratio = 4.0 / 27
-        coef = (0,4,0,0,5,0,0,0,3,0,1,0,5,0,0,4,-22)
-        
-    if ( set(nbkeys) ==  set(['ENE','ESE','S','W','NW','N'])
-        and cell['level'] == cell['neighbors']['NW']['level'] + 1):   # type h
-        conf = 'hWSW'
-        ratio = 4.0 / 27
-        coef = (5,0,0,4,0,4,0,0,5,0,0,0,3,0,1,0,-22)
-        
-    if ( set(nbkeys) ==  set(['SSW','SSE','W','NE','N','E'])
-        and cell['level'] == cell['neighbors']['NE']['level'] + 1):   # type h
-        conf = 'hNNW'
-        ratio = 4.0 / 27
-        coef = (3,0,1,0,5,0,0,4,0,4,0,0,5,0,0,0,-22)
-#    
-    if ( set(nbkeys) == set(['W','N','SW','E','S'])
-        and cell['level'] == cell['neighbors']['SW']['level']) :   # type i
-        conf = 'iSSE'
-        ratio = 2.0 / 21
-        coef = (9,0,0,0,9,0,0,0,4,0,3,0,8,0,0,0,-33)
-        
-    if ( set(nbkeys) == set(['N','E','NW','S','W'])
-        and cell['level'] == cell['neighbors']['NW']['level'] ):   # type i
-        conf = 'iWSW'
-        ratio = 2.0 / 21
-        coef = (8,0,0,0,9,0,0,0,9,0,0,0,4,0,3,0,-33)
-        
-    if ( set(nbkeys) == set(['E','S','NE','W','N'])
-        and cell['level'] == cell['neighbors']['NE']['level'] ):   # type i
-        conf = 'iNNW'
-        ratio = 2.0 / 21
-        coef = (4,0,3,0,8,0,0,0,9,0,0,0,9,0,0,0,-33)
-        
-    if ( set(nbkeys) ==  set(['S','W','SE','N','E'])
-        and cell['level'] == cell['neighbors']['SE']['level'] ):   # type i
-        conf = 'iENE'
-        ratio = 2.0 / 21
-        coef = (9,0,0,0,4,0,3,0,8,0,0,0,9,0,0,0,-33)
-        
-    if ( set(nbkeys) == set(['W','N','SE','E','S'])
-        and cell['level'] == cell['neighbors']['SE']['level']) :   # type i
-        conf = 'iSSW'
-        ratio = 2.0 / 21
-        coef = (9,0,0,0,9,0,3,0,4,0,0,0,8,0,0,0,-33)
-        
-    if ( set(nbkeys) == set(['N','E','SW','S','W'])
-        and cell['level'] == cell['neighbors']['SW']['level'] ):   # type i
-        conf = 'iWNW'
-        ratio = 2.0 / 21
-        coef = (8,0,0,0,9,0,0,0,9,0,3,0,4,0,0,0,-33)
-        
-    if ( set(nbkeys) == set(['E','S','NW','W','N'])
-        and cell['level'] == cell['neighbors']['NW']['level'] ):   # type i
-        conf = 'iNNE'
-        ratio = 2.0 / 21
-        coef = (4,0,0,0,8,0,0,0,9,0,0,0,9,0,3,0,-33)
-        
-    if ( set(nbkeys) ==  set(['S','W','NE','N','E'])
-        and cell['level'] == cell['neighbors']['NE']['level'] ):   # type i
-        conf = 'iESE'
-        ratio = 2.0 / 21
-        coef = (9,0,3,0,4,0,0,0,8,0,0,0,9,0,0,0,-33)
-#
-    if ( set(nbkeys) == set(['E','S','SE','W','N'])
-        and ( cell['level'] - 1 == cell['neighbors']['SE']['level'] - 1
-        == cell['neighbors']['S']['level'] == cell['neighbors']['E']['level'] ) ):   # type j
-        conf = 'jSE'
-        ratio = 2.0 / 13
-        coef = (5,0,0,0,2,0,3,0,2,0,0,0,5,0,0,0,-17)
-        
-    if ( set(nbkeys) == set(['E','S','SW','W','N'])
-        and ( cell['level'] - 1 == cell['neighbors']['SW']['level'] - 1
-        == cell['neighbors']['S']['level'] == cell['neighbors']['W']['level'] ) ):   # type j
-        conf = 'jSW'
-        ratio = 2.0 / 13
-        coef = (5,0,0,0,5,0,0,0,2,0,3,0,2,0,0,0,-17)
-        
-    if ( set(nbkeys) == set(['E','S','NW','W','N'])
-        and ( cell['level'] -1 == cell['neighbors']['NW']['level'] - 1
-        == cell['neighbors']['N']['level'] == cell['neighbors']['W']['level'] ) ):   # type j
-        conf = 'jNW'
-        ratio = 2.0 / 13
-        coef = (2,0,0,0,5,0,0,0,5,0,0,0,2,0,3,0,-17)
-        
-    if ( set(nbkeys) == set(['E','S','NE','W','N'])
-        and ( cell['level'] - 1 == cell['neighbors']['NE']['level'] - 1
-        == cell['neighbors']['N']['level'] == cell['neighbors']['E']['level'] ) ):   # type j
-        conf = 'jNE'
-        ratio = 2.0 / 13
-        coef = (2,0,3,0,2,0,0,0,5,0,0,0,5,0,0,0,-17)
-#
-    if ( set(nbkeys) == set(['E','S','SE','W','N'])
-        and cell['level'] == cell['neighbors']['E']['level'] 
-        and cell['neighbors']['S']['level'] == cell['neighbors']['SE']['level'] ):   # type k
-        conf = 'kSSW'
-        ratio = 2.0 / 15
-        coef = (6,0,0,0,6,0,1,0,3,0,0,0,6,0,0,0,-22)
-
-    if ( set(nbkeys) == set(['E','S','SW','W','N'])
-        and cell['level'] == cell['neighbors']['S']['level'] 
-        and cell['neighbors']['W']['level'] == cell['neighbors']['SW']['level'] ):   # type k
-        conf = 'kWNW'
-        ratio = 2.0 / 15
-        coef = (6,0,0,0,6,0,0,0,6,0,1,0,3,0,0,0,-22)
-
-    if ( set(nbkeys) == set(['E','S','NW','W','N'])
-        and cell['level'] == cell['neighbors']['W']['level'] 
-        and cell['neighbors']['N']['level'] == cell['neighbors']['NW']['level'] ):   # type k
-        conf = 'kNNE'
-        ratio = 2.0 / 15
-        coef = (3,0,0,0,6,0,0,0,6,0,0,0,6,0,1,0,-22)
-
-    if ( set(nbkeys) == set(['E','S','NE','W','N'])
-        and cell['level'] == cell['neighbors']['N']['level'] 
-        and cell['neighbors']['E']['level'] == cell['neighbors']['NE']['level'] ):   # type k
-        conf = 'kESE'
-        ratio = 2.0 / 15
-        coef = (6,0,1,0,3,0,0,0,6,0,0,0,6,0,0,0,-22)
-
-    if ( set(nbkeys) == set(['E','S','SW','W','N'])
-        and cell['level'] == cell['neighbors']['W']['level'] 
-        and cell['neighbors']['S']['level'] == cell['neighbors']['SW']['level'] ):   # type k
-        conf = 'kSSE'
-        ratio = 2.0 / 15
-        coef = (6,0,0,0,6,0,0,0,3,0,1,0,6,0,0,0,-22)
-
-    if ( set(nbkeys) == set(['E','S','NW','W','N'])
-        and cell['level'] == cell['neighbors']['N']['level'] 
-        and cell['neighbors']['W']['level'] == cell['neighbors']['NW']['level'] ):   # type k
-        conf = 'kWSW'
-        ratio = 2.0 / 15
-        coef = (6,0,0,0,6,0,0,0,6,0,0,0,3,0,1,0,-22)
-
-    if ( set(nbkeys) == set(['E','S','NE','W','N'])
-        and cell['level'] == cell['neighbors']['E']['level'] 
-        and cell['neighbors']['N']['level'] == cell['neighbors']['NE']['level'] ):   # type k
-        conf = 'kNNW'
-        ratio = 2.0 / 15
-        coef = (3,0,1,0,6,0,0,0,6,0,0,0,6,0,0,0,-22)
-
-    if ( set(nbkeys) == set(['E','S','SE','W','N'])
-        and cell['level'] == cell['neighbors']['S']['level'] 
-        and cell['neighbors']['E']['level'] == cell['neighbors']['SE']['level'] ):   # type k
-        conf = 'kENE'
-        ratio = 2.0 / 15
-        coef = (6,0,0,0,3,0,1,0,6,0,0,0,6,0,0,0,-22)
-#
-    if ( set(nbkeys) == set(['E','S','SE','W','N'])
-        and cell['neighbors']['E']['level'] ==
-        cell['neighbors']['S']['level'] >= cell['neighbors']['SE']['level'] ):   # type l
-        conf = 'lSE'
-        ratio = 1.0 / 9
-        coef = (6,0,0,0,3,0,2,0,3,0,0,0,6,0,0,0,-20)
-
-    if ( set(nbkeys) == set(['E','S','SW','W','N'])
-        and cell['neighbors']['S']['level'] ==
-        cell['neighbors']['W']['level'] >= cell['neighbors']['SW']['level'] ):   # type l
-        conf = 'lSW'
-        ratio = 1.0 / 9
-        coef = (6,0,0,0,6,0,0,0,3,0,2,0,3,0,0,0,-20)
-
-    if ( set(nbkeys) == set(['E','S','NW','W','N'])
-        and cell['neighbors']['N']['level'] ==
-        cell['neighbors']['W']['level'] >= cell['neighbors']['NW']['level'] ):   # type l
-        conf = 'lNW'
-        ratio = 1.0 / 9
-        coef = (3,0,0,0,6,0,0,0,6,0,0,0,3,0,2,0,-20)
-
-    if ( set(nbkeys) == set(['E','S','NE','W','N'])
-        and cell['neighbors']['N']['level'] ==
-        cell['neighbors']['E']['level'] >= cell['neighbors']['NE']['level'] ):   # type l
-        conf = 'lNE'
-        ratio = 1.0 / 9
-        coef = (3,0,2,0,3,0,0,0,6,0,0,0,6,0,0,0,-20)
-    
-    return conf, ratio, coef
-
-
-def extractUW(cell, point):
-    xP, yP = point
-    if cell['isLeaf']:
-        return (cell['U'], cell['W'])
-    else:
-        if cell['xL'] <= xP <= cell['xC'] and cell['yB'] <= yP <= cell['yC']:
-            return extractUW(cell['SW'], point)
-        elif cell['xL'] <= xP <= cell['xC'] and cell['yC'] <= yP <= cell['yT']:
-            return extractUW(cell['NW'], point)
-        elif cell['xC'] <= xP <= cell['xR'] and cell['yB'] <= yP <= cell['yC']:
-            return extractUW(cell['SE'], point)
-        elif cell['xC'] <= xP <= cell['xR'] and cell['yC'] <= yP <= cell['yT']:
-            return extractUW(cell['NE'], point)
-
-
-def extractC(cell, point):
-    xP, yP = point
-    if cell['isLeaf']:
-        return cell['C']
-    else:
-        if cell['xL'] <= xP <= cell['xC'] and cell['yB'] <= yP <= cell['yC']:
-            return extractC(cell['SW'], point)
-        elif cell['xL'] <= xP <= cell['xC'] and cell['yC'] <= yP <= cell['yT']:
-            return extractC(cell['NW'], point)
-        elif cell['xC'] <= xP <= cell['xR'] and cell['yB'] <= yP <= cell['yC']:
-            return extractC(cell['SE'], point)
-        elif cell['xC'] <= xP <= cell['xR'] and cell['yC'] <= yP <= cell['yT']:
-            return extractC(cell['NE'], point)
 
 
 ## Data input
@@ -484,7 +119,7 @@ elif scenario=='A1':
     nuv = 0.002 / (UNIT_LEN**2)
     THETA_C = 1500
     delta_t = 0.002  # 0.5 * h / Wo
-    nt = 60_000
+    nt = 24_000 # 60_000
 elif scenario=='B1':
     Ua = 0.1 / UNIT_LEN
     Wo = 0.5 / UNIT_LEN
@@ -495,11 +130,8 @@ elif scenario=='B1':
     eps = 0.005 / (UNIT_LEN**2)  # will be dynamically adjusted
     nuh = 0.002 / (UNIT_LEN**2)  # will be dynamically adjusted
     nuv = 0.002 / (UNIT_LEN**2)  # will be dynamically adjusted
-    THETA_C = 1000
-    THETA_U = 1.5E-5
-    THETA_U2 = 0.75E-5
     delta_t = 0.002  # 0.5 * h / Wo
-    nt = 300
+    nt = 50_000
 elif scenario=='C1':
     Ua = 0.5 / UNIT_LEN
     Wo = 2 / UNIT_LEN
@@ -560,6 +192,8 @@ elif scenario=='G1':
 matC = numpy.zeros((size_matr_seed, size_matr_seed), dtype=float)
 xLport = 0.5 - 1.0 / size_matr_seed
 xRport = 0.5 + 1.0 / size_matr_seed
+width_outlet = xRport - xLport
+
 if scenario in ['E1']:
     matC[size_matr_seed*9//10-1][size_matr_seed//2] = matC[size_matr_seed*9//10][size_matr_seed//2] = Co = 100
 else:
@@ -589,9 +223,9 @@ meshU.split_BFS(meshU.rootCell, threshold=0, maxDepth=MAX_DEPTH)
 
 starttime = time.time()
 
-for timeCounter in range(nt):
+for timeCounter in range(nt+1):
     t = timeCounter * delta_t
-    if (timeCounter % 500 == 0):
+    if (timeCounter % export_interval == 0):
         print(f'({timeCounter})\tt = {t} \tElapsed: {time.time() - starttime:.0f} s', end='')
         print('\tMesh C:', len(meshC.leafList), '\tMeshU:', len(meshU.leafList))
     
@@ -831,8 +465,7 @@ for timeCounter in range(nt):
         graU = numpy.sqrt(ududx*ududx + wdwdy*wdwdy)
         
         tmpList = [ ]
-        if ((graU > THETA_U) and (cell['yT'] <= 0.0875) and (cell['level'] < MAX_DEPTH)
-        or (graU > THETA_U2) and (0.0875 < cell['yT'] <= SURFACE) and (cell['level'] < MAX_DEPTH)):
+        if (graU > THETA_U) and (cell['yT'] <= 0.5) and (cell['level'] < MAX_DEPTH):
             # sort ascending based on the level
             search_DFS( meshU, cell, MAX_DEPTH )
             for anycell in tmpList:
@@ -1031,6 +664,49 @@ for timeCounter in range(nt):
                 if not (anycell in refineList):
                     refineList.append( anycell )
 
+    # 25Feb24: add this section to get the value list for data extraction...
+    meshC.valList.clear()
+    meshC.textList.clear()
+    for cell in meshC.leafList:
+        Cpnew = cell['Cnew']
+        val = 100 * Cpnew / Co
+        meshC.valList.append([cell['xC'], cell['yC'], val])
+        st = str(int(round(val)))
+        if st != "0":
+            meshC.textList.append([cell['xC'], cell['yC'], st])
+
+    points = numpy.array(meshC.valList)[:,0:2]  # .astype(float)
+    values = numpy.array(meshC.valList)[:,2]  # .astype(float)
+
+    # This grid may be finer than the quadtree mesh, but it is used for visualization only.
+    grid_x, grid_y = numpy.meshgrid(numpy.linspace(0.49, 0.51, 20), 
+                                    numpy.linspace(0, 0.1, 100), indexing='ij')
+
+    # This "grid" is a collection of transects to extract the data from the meshC.
+    ntrans = 5
+    x0, y0, x1, y1 = 0.49, ntrans*(2*width_outlet), 0.51, 2*width_outlet
+    rot = 0
+    spacing_samples = (xRport - xLport) / 4
+    len_transect = numpy.hypot(x1 - x0, y1 - y0)
+    npoints = int(len_transect / spacing_samples)
+    trans_x, trans_y = numpy.meshgrid(numpy.linspace(x0, x1, npoints),
+                                    numpy.linspace(y0, y1, ntrans), indexing='ij')
+
+    trans_xr = numpy.cos(rot) * trans_x + numpy.sin(rot) * trans_y
+    trans_yr = -numpy.sin(rot) * trans_x + numpy.cos(rot) * trans_y
+
+    if timeCounter % export_interval == 0:
+        from scipy.interpolate import griddata
+        grid_C = griddata(points, values, (grid_x, grid_y), method='cubic')  # alternatives: 'nearest', 'linear'
+        transect_C = griddata(points, values, (trans_xr, trans_yr), method='linear')
+        
+        plt.imshow(grid_C.T, extent=(0.49, 0.51, 0, 0.1), origin='lower')
+        with open("C_res.txt", "a") as f:
+            if timeCounter == 0:
+                f.write("\n")
+            numpy.savetxt(f, transect_C.T, fmt='%.3f', delimiter=',')
+            f.write("\n")
+
     # Updating new values - move before refining
     Cmax = 0
     for cell in meshC.leafList:
@@ -1095,5 +771,3 @@ else:
     qvscale = 5E-5
 meshU.draw(st2, grid=True, num=False, arrow=False, patches=False, quiver=True, qvscale=qvscale, extent=(0.48, 0.63, 0, 0.15))
 # Pickle file save mesh temporary failed (max recursion depth exceeded)
-
-print("End simulation")
