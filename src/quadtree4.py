@@ -482,6 +482,7 @@ class QTree(object):
             elif 'S' in nbdict and nbdict['S']['level'] == cell['level'] - 1:
                 cell['neighbors']['SE'] = {'id':_EAST, 'level':cell['level'] - 1}
 
+
     def refine(self, cell):
         SWCell, NWCell, SECell, NECell = self.divide(cell)
         self.nLeaves += 3
@@ -489,8 +490,26 @@ class QTree(object):
         NWCell['isLeaf'] = SWCell['isLeaf'] = NECell['isLeaf'] = SECell['isLeaf'] = True
         self.leafList += [NWCell, SWCell, NECell, SECell]
     
-    def draw(self, t, grid=True, num=False, arrow=True, dot=False, color_scale='norm',
+
+    def draw(self, t, grid=True, xo_port=0.5, yo_port=0, width_port=0.0078125, num=False, arrow=True, dot=False, color_scale='norm',
             patches=False, quiver=True, qvscale=None, extent=(0.48, 0.52, 0, 0.1), file_save=None):
+        """ Draw the quadtree with matplotlib. 
+            t: time, for the title of the plot.
+            grid: the quadtree grid or mesh object.
+            xo_port: x offset for the port.
+            yo_port: y offset for the port.
+            width_port: width of the port.
+            num: draw numbers in the cells.
+            arrow: draw arrows between cells.
+            dot: draw dots in the cells.
+            color_scale: 'norm' for linear scaling, 'log' for logarithmic scaling.
+            patches: draw patches for the cells.
+            quiver: draw quiver plot for the leaf cells.
+            qvscale: scale for the quiver plot.
+            extent: the extent of the plot in the form (xmin, xmax, ymin, ymax).
+            file_save: if not None, save the plot to a file using pickle.
+            This method generates a plot of the quadtree structure with various options for visualization.
+        """
         print("Generating plot ...")
         plt.figure()
         plt.plot( [0, 0, 1, 1, 0], [0, 1, 1, 0, 0], 'k-')
@@ -550,6 +569,12 @@ class QTree(object):
         if file_save is not None:
             with open(file_save, 'wb') as fh:
                 pickle.dump(self, fh, protocol=pickle.HIGHEST_PROTOCOL)
+
+        offset_x = lambda x, _: f'{(x - xo_port) / width_port:g}'
+        offset_y = lambda y, _: f'{(y - yo_port) / width_port:g}'
+        axes = plt.gca()
+        axes.xaxis.set_major_formatter(offset_x)
+        axes.yaxis.set_major_formatter(offset_y)
 
         xmin, xmax, ymin, ymax, *_ = extent
         plt.xlim(xmin, xmax)
