@@ -82,7 +82,7 @@ elif scenario=='A1':
     nuv = 0.002 / (UNIT_LEN**2)
     THETA_C = 1500
     delta_t = 0.002  # 0.5 * h / Wo
-    nt = 3000 #90_000
+    nt = 500 #90_000
 elif scenario=='B1':
     Ua = 0.1 / UNIT_LEN
     Wo = 0.5 / UNIT_LEN
@@ -680,8 +680,8 @@ for timeCounter in range(nt):
         print('Time counter:', timeCounter, 't:', t)
         from scipy.interpolate import griddata
         grid_C = griddata(points, values, (grid_x, grid_y), method='cubic')  # alternatives: 'nearest', 'linear'
-        import matplotlib.pyplot as plt
-        plt.imshow(grid_C.T, extent=(0.49, 0.51, 0, 0.1), origin='lower')
+        # import matplotlib.pyplot as plt
+        # plt.imshow(grid_C.T, extent=(0.49, 0.51, 0, 0.1), origin='lower')
 
     # Updating new values - move before refining
     Cmax = 0
@@ -736,15 +736,24 @@ for cell in meshU.leafList:
     color = 1 if color > 1 else color
     h = cell['side']
     meshU.patchesList.append( [(cell['xL'], cell['yB']), h, h, color, '0'] )
-    
+
+# Visualization
+
+
 st1 = f'Concentration at t = {t:.2f}'
 st2 = f'Velocity at t = {t:.2f}'
-meshC.draw(st1, grid=True, num=False, arrow=False, patches=True, quiver=False, extent=(0.48, 0.63, 0, 0.15))
-meshC.draw(st1, grid=True, num=True, arrow=False, patches=False, quiver=False, extent=(0.48, 0.63, 0, 0.15))
-meshU.draw(st2, grid=True, num=True, arrow=False, patches=False, quiver=False, extent=(0.48, 0.63, 0, 0.15))
+# meshC.draw(st1, grid=True, num=False, arrow=False, patches=True, quiver=False, extent=(0.48, 0.63, 0, 0.15))
+# meshC.draw(st1, grid=True, num=True, arrow=False, patches=False, quiver=False, extent=(0.48, 0.63, 0, 0.15))
+# meshU.draw(st2, grid=True, num=True, arrow=False, patches=False, quiver=False, extent=(0.48, 0.63, 0, 0.15))
 if scenario in ['C1', 'D1', 'E1', 'G1']:
     qvscale = 5E-4
 else:
-    qvscale = 5E-5
-meshU.draw(st2, grid=True, num=False, arrow=False, patches=False, quiver=True, qvscale=qvscale, extent=(0.48, 0.63, 0, 0.15))
+    qvscale = 1E-4
+
+w = width
+meshU.draw(st2, grid=True, num=False, arrow=False, patches=False, quiver=True, 
+            qvscale=qvscale, 
+            # extent=(0.48, 0.63, 0, 0.15),
+            xticks=[-8*w,-4*w,0,4*w,8*w], yticks=[0,4*w,8*w]
+            )
 # Pickle file save mesh temporary failed (max recursion depth exceeded)

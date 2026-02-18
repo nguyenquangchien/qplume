@@ -816,7 +816,7 @@ for timeCounter in range(nt):
             # if Udif * Wdif != 0 and cell['level'] == MAX_DEPTH:
             #     print(' ', (Udif, Wdif), end='')
             
-            # MISSING THE PRESSURE CORRECTION!
+            # PRESSURE CORRECTION!
             Upred = Unew
             Wpred = Wnew
 

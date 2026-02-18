@@ -535,7 +535,7 @@ elif scenario=='E2':
     THETA_U2 = 5E-4
     THETA_C2 = 1000
     delta_t = 0.001
-    nt = 45_000 # 30_000
+    nt = 45_00 # 30_000
 
 
 ## Initialization
@@ -593,7 +593,7 @@ starttime = time.time()
 
 for timeCounter in range(nt):
     t = timeCounter * delta_t
-    if (timeCounter % 500 == 0):
+    if (timeCounter % 300 == 0):
         print(f'({timeCounter})\tt = {t} \tElapsed: {time.time() - starttime:.0f} s', end='')
         print('\tMesh C:', len(meshC.leafList), '\tMeshU:', len(meshU.leafList))
     
@@ -974,7 +974,7 @@ for timeCounter in range(nt):
             for i in range(17):
                 Cdif += coef[i] * CList[i]
             
-            eps = Sc * nu_z
+            eps = Sc * nu_z  # wrong
             Cdif *= ratio * eps * delta_t / (h * h)
         
         Cpnew = Cp + Cadv + Cdif

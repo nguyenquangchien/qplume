@@ -491,8 +491,13 @@ class QTree(object):
         self.leafList += [NWCell, SWCell, NECell, SECell]
     
 
-    def draw(self, t, grid=True, xo_port=0.5, yo_port=0, width_port=0.0078125, num=False, arrow=True, dot=False, color_scale='norm',
-            patches=False, quiver=True, qvscale=None, extent=(0.48, 0.52, 0, 0.1), file_save=None):
+    def draw(self, t, grid=True, xo_port=0.5, yo_port=0, width_port=0.0078125, 
+            num=False, arrow=True, dot=False, color_scale='norm',
+            color='blue', alpha=0.5,
+            patches=False, quiver=True, qvscale=None, 
+            extent=(0.48, 0.52, 0, 0.1), 
+            xticks=None, yticks=None,
+            file_save=None):
         """ Draw the quadtree with matplotlib. 
             t: time, for the title of the plot.
             grid: the quadtree grid or mesh object.
@@ -507,6 +512,7 @@ class QTree(object):
             quiver: draw quiver plot for the leaf cells.
             qvscale: scale for the quiver plot.
             extent: the extent of the plot in the form (xmin, xmax, ymin, ymax).
+            xticks, yticks: list of tick mark locations on both axes.
             file_save: if not None, save the plot to a file using pickle.
             This method generates a plot of the quadtree structure with various options for visualization.
         """
@@ -545,15 +551,19 @@ class QTree(object):
         
         if grid:
             for cross in self.lineCrossList:
-                plt.plot(cross[0], cross[1], 'k-', linewidth=0.2)
+                plt.plot(cross[0], cross[1], 'k:', linewidth=0.1)
         
         if quiver:
-            data = [(ci['xC'], ci['yC'], ci['Unew'], ci['Wnew']) for ci in self.leafList]
+            data = [(ci['xC'], ci['yC'], ci['Unew'], ci['Wnew']) 
+                    for ci in self.leafList
+                    if abs(ci['yB'] % width_port) < 1E-4 or abs(ci['yB'] % width_port - width_port) < 1E-4]
             list_zip = list(zip(*data))
             xs, ys, us, ws = list(list_zip[0]), list(list_zip[1]), \
                              list(list_zip[2]), list(list_zip[3])
+            
             plt.quiver(xs, ys, us, ws, units='dots', width=1, scale=qvscale, 
-                        headwidth=7, headaxislength=3, headlength=10)
+                        headwidth=7, headaxislength=3, headlength=5,
+                        color=color, alpha=alpha)
 
         if arrow:
             for cell in self.leafList:
@@ -575,6 +585,10 @@ class QTree(object):
         axes = plt.gca()
         axes.xaxis.set_major_formatter(offset_x)
         axes.yaxis.set_major_formatter(offset_y)
+        if xticks is not None:
+            plt.xticks(xticks)
+        if yticks is not None:
+            plt.yticks(yticks)
 
         xmin, xmax, ymin, ymax, *_ = extent
         plt.xlim(xmin, xmax)

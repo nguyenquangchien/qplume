@@ -1,27 +1,6 @@
 # file simulate.py
 '''
 Simulate the flow and concentration using quadtree grids
-
-Version history:
-dif_BAK02.py  :  good enough for t = 0
-dif_testGradient.py : introducing the spatial gradient to refine cells.
-simulate_BAK02  : only good before refinement
-
-Note: Since after refinement, cell config. changes so we must find a flexible
-way to deal with cell differential scheme, rather than relying on their
-positions.
-
-simulate_BAK03  : write all the scheme formulas, although have not
-yet test the correctness.
-simulate_BAK04  :  quite symmetric answer but still not tested all cases.
-
-simulate_BAK06  : make a dictionary (wrong way).
-simulate_BAK07  : attempt to differentiate velocity
-simulate_BAK08  : differentiate velocity lead to overflow !?
-simulate_BAK09  : advection seems okay.
-simulate_BAK10  : including viscosity.
-simulate_BAK11  : okay in principle.
-Implmeenting new set of equations. u is computed from continuity eqn.
 '''
 
 import quadtree4 as quadtree4
@@ -41,7 +20,8 @@ THETA_U = 1E-5
 SURFACE = 0.5
 size_matr_seed = 2**(MAX_DEPTH - 1)
 
-export_interval = 1500
+export_interval = 300
+grid_evol_interval = 6000
 
 
 tmpList = [ ]  # initialised here, to be used in `search_DFS`
@@ -61,7 +41,7 @@ def search_DFS(mesh, cell, maxDepth=None):
 
 ## Data input
 
-scenario = input('Enter Scenario (A1/B1/C1/D1/E1/G1/Customize/Test): ').upper()
+scenario = input('Enter Scenario (A1/B1/C1/D1/E2/G2/Customize/Test): ').upper()
 if scenario.startswith('CUSTOM'):
     try:
         Ua = float(input('Ambient velocity (m/s) [0.1] = ')) / UNIT_LEN
@@ -144,7 +124,8 @@ elif scenario=='C1':
     nuv = 0.01 / (UNIT_LEN**2)
     THETA_U = 5E-4
     delta_t = 0.001
-    nt = 50_000
+    nt = 50_00
+
 elif scenario=='D1':
     Ua = 0.5 / UNIT_LEN
     Wo = 2 / UNIT_LEN
@@ -159,61 +140,65 @@ elif scenario=='D1':
     THETA_C = 1500
     delta_t = 0.001
     nt = 30_000
-elif scenario=='E1':
+elif scenario=='E2':
+    SURFACE = 1
     Ua = 0.5 / UNIT_LEN
     Wo = 2 / UNIT_LEN
     alpha = 0 * numpy.pi / 180
-    Sc = 0.5  # (turbulent) Schmidt number
+    Sc = 0.67  # (turbulent) Schmidt number
     Ufric = 0.04 * Ua
     dens_deficit = 0.025
     eps = 0.01 / (UNIT_LEN**2)
     nuh = 0.01 / (UNIT_LEN**2)
     nuv = 0.01 / (UNIT_LEN**2)
-    THETA_U = 1E-4
-    delta_t = 0.005
-    nt = 1000
-elif scenario=='G1':
-    Ua = 0.5 / UNIT_LEN
-    Wo = 2 / UNIT_LEN
-    alpha = 90 * numpy.pi / 180
-    Sc = 0.5  # (turbulent) Schmidt number
+    THETA_U = 1E-3
+    THETA_C = 2200
+    THETA_U2 = 5E-4
+    THETA_C2 = 2100
+    delta_t = 0.001
+    nt = 15_000
+elif scenario=='G2':
+    Ua = 0.1 / UNIT_LEN
+    Wo = 0.5 / UNIT_LEN
+    alpha = 60 * numpy.pi / 180
+    Sc = 1  # (turbulent) Schmidt number
     Ufric = 0.04 * Ua
-    dens_deficit = 0.010
+    dens_deficit = 0.010  # expected equilibrium at z=H/2
+    # dens_deficit = 0.005  # expected equilibrium at z=H/4
     rho_b = 1030
     rho_s = 1010
     rho_o = (1 - dens_deficit)*rho_b
-    THETA_U = 5E-4
-    delta_t = 0.002
-    nt = 30_000
+    THETA_C = 1800
+    THETA_U = 4E-4
+    delta_t = 0.005
+    nt = 60_000
 
 
 ## Initialization
 
 matC = numpy.zeros((size_matr_seed, size_matr_seed), dtype=float)
-xLport = 0.5 - 1.0 / size_matr_seed
-xRport = 0.5 + 1.0 / size_matr_seed
-width_outlet = xRport - xLport
-
-if scenario in ['E1']:
-    matC[size_matr_seed*9//10-1][size_matr_seed//2] = matC[size_matr_seed*9//10][size_matr_seed//2] = Co = 100
-else:
+matU = numpy.zeros((size_matr_seed, size_matr_seed), dtype=float) + Ua
+if scenario not in ['E2']:
+    xo_port = 0.5
+    yo_port = 0
+    xLport = xo_port - 1.0 / size_matr_seed
+    xRport = xo_port + 1.0 / size_matr_seed
+    width_outlet = xRport - xLport
     matC[size_matr_seed-1][size_matr_seed//2-1] = matC[size_matr_seed-1][size_matr_seed//2] = Co = 100
-# if scenario=='D1':
-#     xRport = 0.5 + 2.0 / size_matr_seed  # one extra cell for diagonal jet
-#     matC[size_matr_seed-1][size_matr_seed//2+1] = Co  # one extra cell for diagonal jet
+    matU[size_matr_seed-1][size_matr_seed//2-1] = matU[size_matr_seed-1][size_matr_seed//2] = Wo
+else:
+    xo_port = 0
+    yo_port = yo = 0.9375 # 15/16
+    yBport = yo - 1.0 / size_matr_seed
+    yTport = yo + 1.0 / size_matr_seed
+    width_outlet = yTport - yBport
+    matC[size_matr_seed*1//16-1][0] = matC[size_matr_seed*1//16][0] = Co = 100
+    matU[size_matr_seed*1//16-1][0] = matU[size_matr_seed*1//16][0] = Wo
 
 meshC = quadtree4.QTree(matrix=matC, propnames=['C','Cnew'])
 meshC.split_BFS(meshC.rootCell, threshold=1, maxDepth=MAX_DEPTH)
 for cel in meshC.leafList:
     meshC.assignDiagNeighbors(cel)
-
-matU = numpy.zeros((size_matr_seed, size_matr_seed), dtype=float) + Ua
-if scenario in ['E1']:
-    matU[size_matr_seed*9//10-1][size_matr_seed//2] = matU[size_matr_seed*9//10][size_matr_seed//2] = Wo
-else:
-    matU[size_matr_seed-1][size_matr_seed//2-1] = matU[size_matr_seed-1][size_matr_seed//2] = Wo
-# if scenario=='D1':
-#     matU[size_matr_seed-1][size_matr_seed//2+1] = Wo  # one extra cell for diagonal jet
 
 meshU = quadtree4.QTree(matrix=matU, propnames=['U','Unew','W','Wnew','P','Pnew'])
 meshU.split_BFS(meshU.rootCell, threshold=0, maxDepth=MAX_DEPTH)
@@ -247,7 +232,11 @@ for timeCounter in range(nt+1):
         yT = cell['yT']
         
         ududx = udwdx = wdudy = wdwdy = 0
-        if (yB == 0) and (xLport <= xC <= xRport):     # at the mouth of outfall
+        if scenario in ['E2']:
+            cond = (xL == 0) and (yBport <= yC <= yTport)
+        else:
+            cond = (yB == 0) and (xLport <= xC <= xRport)
+        if cond:     # at the orifice
             _dir = "*"
             conf = ' (Outfall) '
             ratio = 0
@@ -433,6 +422,8 @@ for timeCounter in range(nt+1):
                 Udif += coef[i] * UList[i]
                 Wdif += coef[i] * WList[i]
             
+            if scenario in ['E2']:
+                Ufric = Wo * 0.1
             nu_z = 0.41 * yC * Ufric * (1 - yC / SURFACE)
             Udif *= ratio * nu_z * delta_t / (h * h)
             Wdif *= ratio * nu_z * delta_t / (h * h)
@@ -440,7 +431,7 @@ for timeCounter in range(nt+1):
             Unew = Up - delta_t * (ududx + wdudy) + Udif
 
             conc = extractC(meshC.rootCell, (xC, yC))
-            if scenario not in ['G1']:
+            if scenario not in ['G2']:
                 gprime = (9.81/UNIT_LEN) * dens_deficit * (conc/100)  # buoyancy
             else:
                 rho_z = rho_b - (rho_b - rho_s) * yC / SURFACE
@@ -465,7 +456,12 @@ for timeCounter in range(nt+1):
         graU = numpy.sqrt(ududx*ududx + wdwdy*wdwdy)
         
         tmpList = [ ]
-        if (graU > THETA_U) and (cell['yT'] <= 0.5) and (cell['level'] < MAX_DEPTH):
+        if scenario in ['E2']:
+            cond_U = ((graU > THETA_U) and (cell['yT'] <= SURFACE - 0.04) or 
+                    (graU > THETA_U2) and (SURFACE - 0.04 < cell['yT'] <= SURFACE))
+        else:
+            cond_U = (graU > THETA_U) and (cell['yT'] <= 0.5)
+        if cond_U and (cell['level'] < MAX_DEPTH):
             # sort ascending based on the level
             search_DFS( meshU, cell, MAX_DEPTH )
             for anycell in tmpList:
@@ -501,7 +497,11 @@ for timeCounter in range(nt+1):
         dCdx = dCdy = 0
         fluxw = fluxe = fluxn = fluxs = 0
         
-        if (yB == 0) and (xLport <= xC <= xRport):     # at the mouth of outfall
+        if scenario in ['E2']:
+            cond = (xL == 0) and (yBport <= yC <= yTport)
+        else:
+            cond = (yB == 0) and (xLport <= xC <= xRport)
+        if cond:     # at the orifice
             _dir = ' *'
             conf = ' (Outfall) '
             ratio = 0
@@ -640,7 +640,7 @@ for timeCounter in range(nt+1):
             elif 'W' in K and 'ENE' in K and 'ESE' in K:
                 dCdx = 0.5 * ( (Cene - Cw)  + (Cese - Cw) ) / (nbdict['ENE']['xC'] - nbdict['W']['xC'])
         except:
-            print(cell['id'], cell['neighbors'].keys())
+            print('WARNING: neighbourhood detection (W/E) of cell', cell['id'], 'with neighbour list', cell['neighbors'].keys())
         
         try:
             if 'N' in K and 'S' in K:
@@ -652,24 +652,32 @@ for timeCounter in range(nt+1):
             elif 'S' in K and 'NNE' in K and 'NNW' in K:
                 dCdy = 0.5 * ( (Cnne - Cs)  + (Cnnw - Cs) ) / (nbdict['NNE']['yC'] - nbdict['S']['yC'])
         except:
-            print(cell['id'])
+            print('WARNING: neighbourhood detection (N/S) of cell', cell['id'], 'with neighbour list', cell['neighbors'].keys())
             
         graC = numpy.sqrt(dCdx*dCdx + dCdy*dCdy)
         
         tmpList = [ ]
-        if (graC > THETA_C) and (cell['yT'] <= 0.5) and (cell['level'] < MAX_DEPTH): 
+        if scenario in ['E2']:
+            cond_C = ((graC > THETA_C) and (cell['yT'] <= SURFACE - 0.04) or 
+                    (graC > THETA_C2) and (SURFACE - 0.04 < cell['yT'] <= SURFACE))
+        else:
+            cond_C = (graC > THETA_C) and (cell['yT'] <= 0.5)
+
+        if cond_C and (cell['level'] < MAX_DEPTH): 
             # sort ascending based on the level
             search_DFS( meshC, cell, MAX_DEPTH )
             for anycell in tmpList:
                 if not (anycell in refineList):
                     refineList.append( anycell )
 
-    # 25Feb24: add this section to get the value list for data extraction...
+    # Get the value list for data extraction... >> can be used for visualising cell levels.
     meshC.valList.clear()
     meshC.textList.clear()
     for cell in meshC.leafList:
-        Cpnew = cell['Cnew']
-        val = 100 * Cpnew / Co
+        # Cpnew = cell['Cnew']
+        # val = 100 * Cpnew / Co
+        h = cell['side']
+        val = numpy.log2(1/h)
         meshC.valList.append([cell['xC'], cell['yC'], val])
         st = str(int(round(val)))
         if st != "0":
@@ -679,14 +687,18 @@ for timeCounter in range(nt+1):
     values = numpy.array(meshC.valList)[:,2]  # .astype(float)
 
     # This grid may be finer than the quadtree mesh, but it is used for visualization only.
-    grid_x, grid_y = numpy.meshgrid(numpy.linspace(0.49, 0.51, 20), 
-                                    numpy.linspace(0, 0.1, 100), indexing='ij')
+    grid_x, grid_y = numpy.meshgrid(numpy.linspace(0, 1, 200), 
+                                    numpy.linspace(0, 5, 100), indexing='ij')
 
     # This "grid" is a collection of transects to extract the data from the meshC.
     ntrans = 5
     x0, y0, x1, y1 = 0.49, ntrans*(2*width_outlet), 0.51, 2*width_outlet
     rot = 0
-    spacing_samples = (xRport - xLport) / 4
+    if scenario in ['E2']:
+        spacing_samples = (yTport - yBport) / 4
+    else:
+        spacing_samples = (xRport - xLport) / 4
+
     len_transect = numpy.hypot(x1 - x0, y1 - y0)
     npoints = int(len_transect / spacing_samples)
     trans_x, trans_y = numpy.meshgrid(numpy.linspace(x0, x1, npoints),
@@ -695,13 +707,16 @@ for timeCounter in range(nt+1):
     trans_xr = numpy.cos(rot) * trans_x + numpy.sin(rot) * trans_y
     trans_yr = -numpy.sin(rot) * trans_x + numpy.cos(rot) * trans_y
 
-    if timeCounter % export_interval == 0:
+    if timeCounter % grid_evol_interval == 0:
         from scipy.interpolate import griddata
-        grid_C = griddata(points, values, (grid_x, grid_y), method='cubic')  # alternatives: 'nearest', 'linear'
+        grid_C = griddata(points, values, (grid_x, grid_y), method='nearest')  # alternatives: 'cubic', 'nearest', 'linear'
         transect_C = griddata(points, values, (trans_xr, trans_yr), method='linear')
-        
-        plt.imshow(grid_C.T, extent=(0.49, 0.51, 0, 0.1), origin='lower')
-        with open("C_res.txt", "a") as f:
+        plt.figure(figsize=(6, 3)) 
+        plt.title('Cell level; nearest interpolated')
+        plt.imshow(grid_C.T, extent=(0, 1, 0, 0.5), cmap='cmo.deep', origin='lower')
+        # plt.contour(grid_C.T, extent=(0.46, 0.62, 0, 0.2), origin='lower')
+        plt.colorbar()
+        with open("C_res2.txt", "a") as f:
             if timeCounter == 0:
                 f.write("\n")
             numpy.savetxt(f, transect_C.T, fmt='%.3f', delimiter=',')
@@ -759,15 +774,41 @@ for cell in meshU.leafList:
     color = 1 if color > 1 else color
     h = cell['side']
     meshU.patchesList.append( [(cell['xL'], cell['yB']), h, h, color, '0'] )
-    
+
+# Visualization
+w = width_outlet
+if scenario == 'C1':
+    plot_extent=(0.5-5*w, 0.5+13*w, 0, 28*w)
+    plot_xticks=[0.5-3*w, 0.5, 0.5+3*w, 0.5+6*w, 0.5+9*w, 0.5+12*w]
+    plot_yticks=[0, 6*w, 12*w, 18*w, 24*w]
+elif scenario == 'D1':
+    plot_extent=(0.5-2*w, 0.5+16*w, 0, 19*w)
+    plot_xticks=[0.5, 0.5+3*w, 0.5+6*w, 0.5+9*w, 0.5+12*w, 0.5+15*w]
+    plot_yticks=[0, 6*w, 12*w, 18*w]
+elif scenario == 'E2':
+    plot_extent=(0, 31*w, yo-8*w, yo+8*w)
+    plot_xticks=[0, 6*w, 12*w, 18*w, 24*w]
+    plot_yticks=[yo-6*w, yo-3*w, yo, yo+3*w, yo+6*w]
+elif scenario == 'G2':
+    plot_extent=(0.5-4*w, 0.5+25*w, 0, 31*w)
+    plot_xticks=[0.5, 0.5+6*w, 0.5+12*w, 0.5+18*w, 0.5+24*w]
+    plot_yticks=[0, 6*w, 12*w, 18*w, 24*w, 30*w]
+
 st1 = f'Concentration at t = {t:.2f}'
 st2 = f'Velocity at t = {t:.2f}'
-meshC.draw(st1, grid=True, num=False, arrow=False, patches=True, quiver=False, extent=(0.48, 0.63, 0, 0.15))
-meshC.draw(st1, grid=True, num=True, arrow=False, patches=False, quiver=False, extent=(0.48, 0.63, 0, 0.15))
-meshU.draw(st2, grid=True, num=True, arrow=False, patches=False, quiver=False, extent=(0.48, 0.63, 0, 0.15))
-if scenario in ['C1', 'D1', 'E1', 'G1']:
+meshC.draw(st1, grid=True, num=False, arrow=False, patches=True, quiver=False, 
+            xo_port=xo_port, yo_port=yo_port,
+            extent=plot_extent, xticks=plot_xticks, yticks=plot_yticks
+        )
+# meshC.draw(st1, grid=True, num=True, arrow=False, patches=False, quiver=False, extent=(0.48, 0.63, 0, 0.15))
+# meshU.draw(st2, grid=True, num=True, arrow=False, patches=False, quiver=False, extent=(0.48, 0.63, 0, 0.15))
+if scenario in ['C1', 'D1', 'E2', 'G2']:
     qvscale = 5E-4
 else:
-    qvscale = 5E-5
-meshU.draw(st2, grid=True, num=False, arrow=False, patches=False, quiver=True, qvscale=qvscale, extent=(0.48, 0.63, 0, 0.15))
-# Pickle file save mesh temporary failed (max recursion depth exceeded)
+    qvscale = 1E-4
+
+meshU.draw(st2, grid=True, num=False, arrow=False, patches=False, quiver=True, 
+            qvscale=qvscale, color='blue', alpha=0.4,
+            xo_port=xo_port, yo_port=yo_port,
+            extent=plot_extent, xticks=plot_xticks, yticks=plot_yticks
+            )
