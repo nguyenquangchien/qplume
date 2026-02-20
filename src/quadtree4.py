@@ -527,12 +527,12 @@ class QTree(object):
         
         if num:
             for txt in self.textList:
-                plt.text(txt[0], txt[1], txt[2], fontsize=6, color='blue', 
+                plt.text(txt[0], txt[1], txt[2], fontsize=8, color='black', 
                         ha='center', va='center')
         
         if grid:
             for cross in self.lineCrossList:
-                plt.plot(cross[0], cross[1], 'k:', linewidth=0.1)
+                plt.plot(cross[0], cross[1], 'k:', linewidth=0.3)
         
         if quiver:
             if thin is None:

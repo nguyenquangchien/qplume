@@ -59,3 +59,8 @@ Thumbs.db
 
 # Backup files
 *BAK*
+
+# Other files
+*_s.py
+*_BAK.spec
+*_res*.txt

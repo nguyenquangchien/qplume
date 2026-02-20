@@ -99,7 +99,7 @@ elif scenario=='A1':
     nuv = 0.002 / (UNIT_LEN**2)
     THETA_C = 1500
     delta_t = 0.002  # 0.5 * h / Wo
-    nt = 500 # 60_000
+    nt = 45_00 # 60_000
 elif scenario=='B1':
     Ua = 0.1 / UNIT_LEN
     Wo = 0.5 / UNIT_LEN
@@ -425,7 +425,8 @@ for timeCounter in range(nt+1):
             if scenario in ['E2']:
                 Ufric = Wo * 0.1
             nu_z = 0.41 * yC * Ufric * (1 - yC / SURFACE)
-            Udif *= ratio * nu_z * delta_t / (h * h)
+            nu_x = nu_z
+            Udif *= ratio * nu_x * delta_t / (h * h)
             Wdif *= ratio * nu_z * delta_t / (h * h)
 
             Unew = Up - delta_t * (ududx + wdudy) + Udif
@@ -675,11 +676,13 @@ for timeCounter in range(nt+1):
     meshC.textList.clear()
     for cell in meshC.leafList:
         # Cpnew = cell['Cnew']
-        # val = 100 * Cpnew / Co
+        val = 100 * Cpnew / Co
         h = cell['side']
-        val = numpy.log2(1/h)
+        # val = numpy.log2(1/h)  # only to plot cell level
         meshC.valList.append([cell['xC'], cell['yC'], val])
         st = str(int(round(val)))
+        if st == "100":
+            st = "●"
         if st != "0":
             meshC.textList.append([cell['xC'], cell['yC'], st])
 
@@ -777,7 +780,11 @@ for cell in meshU.leafList:
 
 # Visualization
 w = width_outlet
-if scenario in ['B1','C1']:
+if scenario == 'A1':
+    plot_extent=(0.5-8*w, 0.5+8*w, 0, 20*w)
+    plot_xticks=[0.5-6*w, 0.5-3*w, 0.5, 0.5+3*w, 0.5+6*w]
+    plot_yticks=[0, 6*w, 12*w, 18*w]
+elif scenario in ['B1','C1']:
     plot_extent=(0.5-5*w, 0.5+13*w, 0, 28*w)
     plot_xticks=[0.5-3*w, 0.5, 0.5+3*w, 0.5+6*w, 0.5+9*w, 0.5+12*w]
     plot_yticks=[0, 6*w, 12*w, 18*w, 24*w]
@@ -800,8 +807,14 @@ meshC.draw(st1, grid=True, num=False, arrow=False, patches=True, quiver=False,
             xo_port=xo_port, yo_port=yo_port,
             extent=plot_extent, xticks=plot_xticks, yticks=plot_yticks
         )
-# meshC.draw(st1, grid=True, num=True, arrow=False, patches=False, quiver=False, extent=(0.48, 0.63, 0, 0.15))
-# meshU.draw(st2, grid=True, num=True, arrow=False, patches=False, quiver=False, extent=(0.48, 0.63, 0, 0.15))
+meshC.draw(st1, grid=True, num=True, arrow=False, patches=False, quiver=False, 
+            xo_port=xo_port, yo_port=yo_port,
+            extent=plot_extent, xticks=plot_xticks, yticks=plot_yticks
+            )
+meshU.draw(st2, grid=True, num=True, arrow=False, patches=False, quiver=False, 
+            xo_port=xo_port, yo_port=yo_port,
+            extent=plot_extent, xticks=plot_xticks, yticks=plot_yticks
+            )
 if scenario in ['C1', 'D1', 'E2', 'G2']:
     qvscale = 5E-4
 else:
