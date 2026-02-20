@@ -2,26 +2,6 @@
 
 """
 Implement a list-type tree with BFS algorithm.
-
-Version history
-quadtree4_BAK1 : test boundaries, ordering OK
-quadtree4_BAK2 : improve some drawing, but not assign neighborhood correctly. Cell numbering starts from zero.
-quadtree4_BAK3 : consider all types of neighbors. (manualNeighborhoodAssignment)
-quadtree4_BAK4 : Now each neighbour has only one slot, change the direction dictionary structure
-quadtree4_BAK5 : Restrict keys of neighbors to those actually presented.
-quadtree4_BAK6 : Including NNW, etc. neighbors identification
-quadtree4_BAK7 : Nearly complete neighborhood linking
-quadtree4_BAK8 : Quite stable version. Good neighborhood linking except e.g. NE, NW ....
-
-Now evolving to a generic splitting function ...  QTree.split_BFS(aCell, threshold, maxDepth)
-quadtree4_BAK10 : refine(cell) method.
-quadtree4_BAK11 : assignDiagNeighbors
-quadtree4_BAK12 : assignDiagNeighbors -- delete diagonal links if necessary.
-
-Consolidate into Bitbucket repo QPlume:
-20230109: scenario preparation
-TODO: different eps_x and eps_y in cell configuration diffusion
-
 """
 
 import numpy
@@ -495,7 +475,7 @@ class QTree(object):
             num=False, arrow=True, dot=False, color_scale='norm',
             color='blue', alpha=0.5,
             patches=False, quiver=True, qvscale=None, 
-            extent=(0.48, 0.52, 0, 0.1), 
+            extent=(0.48, 0.52, 0, 0.1), thin=None,
             xticks=None, yticks=None,
             file_save=None):
         """ Draw the quadtree with matplotlib. 
@@ -511,6 +491,7 @@ class QTree(object):
             patches: draw patches for the cells.
             quiver: draw quiver plot for the leaf cells.
             qvscale: scale for the quiver plot.
+            thin: 'x' or 'y': velocity vector thining (distance 4*d_0) in either direction
             extent: the extent of the plot in the form (xmin, xmax, ymin, ymax).
             xticks, yticks: list of tick mark locations on both axes.
             file_save: if not None, save the plot to a file using pickle.
@@ -554,9 +535,17 @@ class QTree(object):
                 plt.plot(cross[0], cross[1], 'k:', linewidth=0.1)
         
         if quiver:
-            data = [(ci['xC'], ci['yC'], ci['Unew'], ci['Wnew']) 
-                    for ci in self.leafList
-                    if abs(ci['yB'] % width_port) < 1E-4 or abs(ci['yB'] % width_port - width_port) < 1E-4]
+            if thin is None:
+                data = [(ci['xC'], ci['yC'], ci['Unew'], ci['Wnew']) 
+                        for ci in self.leafList]
+            elif thin == 'x':
+                data = [(ci['xC'], ci['yC'], ci['Unew'], ci['Wnew']) 
+                        for ci in self.leafList
+                        if abs(ci['xL'] % width_port) < 1E-4 or abs(ci['xL'] % width_port - width_port) < 1E-4]
+            elif thin == 'y':
+                data = [(ci['xC'], ci['yC'], ci['Unew'], ci['Wnew']) 
+                        for ci in self.leafList
+                        if abs(ci['yB'] % width_port) < 1E-4 or abs(ci['yB'] % width_port - width_port) < 1E-4]
             list_zip = list(zip(*data))
             xs, ys, us, ws = list(list_zip[0]), list(list_zip[1]), \
                              list(list_zip[2]), list(list_zip[3])

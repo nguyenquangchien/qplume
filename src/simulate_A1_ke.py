@@ -474,7 +474,7 @@ elif scenario=='A1':
     nuv = 0.002 / (UNIT_LEN**2)
     THETA_C = 1500
     delta_t = 0.002  # 0.5 * h / Wo
-    nt = 45_000
+    nt = 45_00
 elif scenario=='B1':
     Ua = 0.1 / UNIT_LEN
     Wo = 0.5 / UNIT_LEN

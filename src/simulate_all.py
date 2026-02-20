@@ -21,7 +21,7 @@ SURFACE = 0.5
 size_matr_seed = 2**(MAX_DEPTH - 1)
 
 export_interval = 300
-grid_evol_interval = 6000
+grid_evol_interval = 99999
 
 
 tmpList = [ ]  # initialised here, to be used in `search_DFS`
@@ -111,7 +111,7 @@ elif scenario=='B1':
     nuh = 0.002 / (UNIT_LEN**2)  # will be dynamically adjusted
     nuv = 0.002 / (UNIT_LEN**2)  # will be dynamically adjusted
     delta_t = 0.002  # 0.5 * h / Wo
-    nt = 50_000
+    nt = 48_000  # 50000
 elif scenario=='C1':
     Ua = 0.5 / UNIT_LEN
     Wo = 2 / UNIT_LEN
@@ -145,7 +145,7 @@ elif scenario=='E2':
     Ua = 0.5 / UNIT_LEN
     Wo = 2 / UNIT_LEN
     alpha = 0 * numpy.pi / 180
-    Sc = 0.67  # (turbulent) Schmidt number
+    Sc = 1.5  # (turbulent) Schmidt number (eps=nuz*0.67=nuz/1.5)
     Ufric = 0.04 * Ua
     dens_deficit = 0.025
     eps = 0.01 / (UNIT_LEN**2)
@@ -161,7 +161,7 @@ elif scenario=='G2':
     Ua = 0.1 / UNIT_LEN
     Wo = 0.5 / UNIT_LEN
     alpha = 60 * numpy.pi / 180
-    Sc = 1  # (turbulent) Schmidt number
+    Sc = 1  # according to simulate_G2.py
     Ufric = 0.04 * Ua
     dens_deficit = 0.010  # expected equilibrium at z=H/2
     # dens_deficit = 0.005  # expected equilibrium at z=H/4
@@ -171,7 +171,7 @@ elif scenario=='G2':
     THETA_C = 1800
     THETA_U = 4E-4
     delta_t = 0.005
-    nt = 60_000
+    nt = 120_00
 
 
 ## Initialization
@@ -777,7 +777,7 @@ for cell in meshU.leafList:
 
 # Visualization
 w = width_outlet
-if scenario == 'C1':
+if scenario in ['B1','C1']:
     plot_extent=(0.5-5*w, 0.5+13*w, 0, 28*w)
     plot_xticks=[0.5-3*w, 0.5, 0.5+3*w, 0.5+6*w, 0.5+9*w, 0.5+12*w]
     plot_yticks=[0, 6*w, 12*w, 18*w, 24*w]

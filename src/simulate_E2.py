@@ -1,29 +1,8 @@
-# file simulate.py
+# file simulate_E2.py
 '''
 Simulate the flow and concentration using quadtree grids
-Only for Case E1 because the boundary condition and matrix seeding is different
+Only for Case E2 because the boundary condition and matrix seeding is different
 Outlet on the Left Boundary (x0 = -0.5, y0 = 0.125)
-
-Version history:
-dif_BAK02.py  :  good enough for t = 0
-dif_testGradient.py : introducing the spatial gradient to refine cells.
-simulate_BAK02  : only good before refinement
-
-Note: Since after refinement, cell config. changes so we must find a flexible
-way to deal with cell differential scheme, rather than relying on their
-positions.
-
-simulate_BAK03  : write all the scheme formulas, although have not
-yet test the correctness.
-simulate_BAK04  :  quite symmetric answer but still not tested all cases.
-
-simulate_BAK06  : make a dictionary (wrong way).
-simulate_BAK07  : attempt to differentiate velocity
-simulate_BAK08  : differentiate velocity lead to overflow !?
-simulate_BAK09  : advection seems okay.
-simulate_BAK10  : including viscosity.
-simulate_BAK11  : okay in principle.
-Implmeenting new set of equations. u is computed from continuity eqn.
 '''
 
 import quadtree4 as quadtree4
@@ -232,7 +211,7 @@ def configurator(mesh, cell):
         conf = 'hNNW'
         ratio = 4.0 / 27
         coef = (3,0,1,0,5,0,0,4,0,4,0,0,5,0,0,0,-22)
-#    
+    
     if ( set(nbkeys) == set(['W','N','SW','E','S'])
         and cell['level'] == cell['neighbors']['SW']['level']) :   # type i
         conf = 'iSSE'
@@ -280,7 +259,7 @@ def configurator(mesh, cell):
         conf = 'iESE'
         ratio = 2.0 / 21
         coef = (9,0,3,0,4,0,0,0,8,0,0,0,9,0,0,0,-33)
-#
+
     if ( set(nbkeys) == set(['E','S','SE','W','N'])
         and ( cell['level'] - 1 == cell['neighbors']['SE']['level'] - 1
         == cell['neighbors']['S']['level'] == cell['neighbors']['E']['level'] ) ):   # type j
@@ -308,7 +287,7 @@ def configurator(mesh, cell):
         conf = 'jNE'
         ratio = 2.0 / 13
         coef = (2,0,3,0,2,0,0,0,5,0,0,0,5,0,0,0,-17)
-#
+
     if ( set(nbkeys) == set(['E','S','SE','W','N'])
         and cell['level'] == cell['neighbors']['E']['level'] 
         and cell['neighbors']['S']['level'] == cell['neighbors']['SE']['level'] ):   # type k
@@ -364,7 +343,7 @@ def configurator(mesh, cell):
         conf = 'kENE'
         ratio = 2.0 / 15
         coef = (6,0,0,0,3,0,1,0,6,0,0,0,6,0,0,0,-22)
-#
+
     if ( set(nbkeys) == set(['E','S','SE','W','N'])
         and cell['neighbors']['E']['level'] ==
         cell['neighbors']['S']['level'] >= cell['neighbors']['SE']['level'] ):   # type l
@@ -427,164 +406,56 @@ def extractC(cell, point):
 
 
 ## Data input
+## Data input
+scenario = 'E2'
+print('Running scenario E2')
 
-scenario = input('Enter Scenario (A1/B1/C1/D1/E2/Customize/Test): ').upper()
-if scenario.startswith('CUSTOM'):
-    try:
-        Ua = float(input('Ambient velocity (m/s) [0.1] = ')) / UNIT_LEN
-    except ValueError:
-        Ua = 0.1 / UNIT_LEN
-    try:
-        Wo = float(input('Jet velocity (/s) [0.5] = ')) / UNIT_LEN
-    except ValueError:
-        Wo = 0.5 / UNIT_LEN
-    try:
-        alpha = float(input('Incline angle jet (degrees) [90] = ')) * numpy.pi / 180
-    except ValueError:
-        alpha = 90 * numpy.pi / 180
-    try:
-        eps = float(input('Eddy diffusivity (m^2/s) [0.01] = '))  / (UNIT_LEN**2)
-    except ValueError:
-        eps = 0.01 / (UNIT_LEN**2)
-    try:
-        nuh = float(input('Horizontal eddy viscosity (m^2/s) [0.01] = '))  / (UNIT_LEN**2)
-    except ValueError:
-        nuh = 0.01 / (UNIT_LEN**2)
-    try:
-        nuv = float(input('Vertical eddy viscosity (m^2/s) [0.01] = '))  / (UNIT_LEN**2)
-    except ValueError:
-        nuv = 0.01 / (UNIT_LEN**2)
-    try:
-        delta_t = float(input('Time step (s) [0.005] = '))
-    except ValueError:
-        delta_t = 0.005
-    try:
-        nt = int(input('# time steps [1000] = '))
-    except ValueError:
-        nt = 1000
-
-elif scenario=='TEST':
-    Ua = 0.0 / UNIT_LEN
-    Wo = 0.5 / UNIT_LEN
-    alpha = 90 * numpy.pi / 180
-    Sc = 0.5  # (turbulent) Schmidt number
-    dens_deficit = 0
-    eps = 0.005 / (UNIT_LEN**2)
-    nuh = 0.002 / (UNIT_LEN**2)
-    nuv = 0.002 / (UNIT_LEN**2)
-    delta_t = 0.002  # 0.5 * h / Wo
-    nt = 10
-elif scenario=='A2':
-    Ua = 0.0 / UNIT_LEN
-    Wo = 0.5 / UNIT_LEN
-    alpha = 90 * numpy.pi / 180
-    Sc = 0.5  # (turbulent) Schmidt number
-    dens_deficit = 0
-    eps = 0.005 / (UNIT_LEN**2)
-    nuh = 0.002 / (UNIT_LEN**2)
-    nuv = 0.002 / (UNIT_LEN**2)
-    delta_t = 0.002  # 0.5 * h / Wo
-    nt = 20_000
-elif scenario=='B2':
-    Ua = 0.1 / UNIT_LEN
-    Wo = 0.5 / UNIT_LEN
-    alpha = 90 * numpy.pi / 180
-    Sc = 0.5  # (turbulent) Schmidt number
-    dens_deficit = 0
-    eps = 0.005 / (UNIT_LEN**2)  # will be dynamically adjusted
-    nuh = 0.002 / (UNIT_LEN**2)  # will be dynamically adjusted
-    nuv = 0.002 / (UNIT_LEN**2)  # will be dynamically adjusted
-    delta_t = 0.002  # 0.5 * h / Wo
-    nt = 50_000
-elif scenario=='C2':
-    Ua = 0.5 / UNIT_LEN
-    Wo = 2 / UNIT_LEN
-    alpha = 90 * numpy.pi / 180
-    Sc = 0.5  # (turbulent) Schmidt number
-    dens_deficit = 0.025
-    eps = 0.01 / (UNIT_LEN**2)
-    nuh = 0.01 / (UNIT_LEN**2)
-    nuv = 0.01 / (UNIT_LEN**2)
-    THETA_U = 1E-4
-    delta_t = 0.001
-    nt = 10_000
-elif scenario=='D2':
-    Ua = 0.5 / UNIT_LEN
-    Wo = 2 / UNIT_LEN
-    alpha = 45 * numpy.pi / 180
-    Sc = 0.5  # (turbulent) Schmidt number
-    dens_deficit = 0.025
-    eps = 0.01 / (UNIT_LEN**2)
-    nuh = 0.01 / (UNIT_LEN**2)
-    nuv = 0.01 / (UNIT_LEN**2)
-    THETA_U = 1E-4
-    delta_t = 0.001
-    nt = 20_000
-elif scenario=='E2':
-    SURFACE = 1 # 0.25 # 1
-    Ua = 0.5 / UNIT_LEN
-    Wo = 2 / UNIT_LEN
-    alpha = 0 * numpy.pi / 180
-    Sc = 0.67  # (turbulent) Schmidt number
-    dens_deficit = 0.025
-    eps = 0.01 / (UNIT_LEN**2)
-    nuh = 0.01 / (UNIT_LEN**2)
-    nuv = 0.01 / (UNIT_LEN**2)
-    THETA_U = 1E-3
-    THETA_C = 1200 # 1500
-    THETA_U2 = 5E-4
-    THETA_C2 = 1000
-    delta_t = 0.001
-    nt = 45_00 # 30_000
+SURFACE = 1 # 0.25 # 1
+Ua = 0.5 / UNIT_LEN
+Wo = 2 / UNIT_LEN
+alpha = 0 * numpy.pi / 180
+Sc = 0.67  # (turbulent) Schmidt number
+dens_deficit = 0.025
+eps = 0.01 / (UNIT_LEN**2)
+nuh = 0.01 / (UNIT_LEN**2)
+nuv = 0.01 / (UNIT_LEN**2)
+THETA_U = 1E-3
+THETA_C = 1200 # 1500
+THETA_U2 = 5E-4
+THETA_C2 = 1000
+delta_t = 0.001
+nt = 30_000
 
 
 ## Initialization
 
 matC = numpy.zeros((size_matr_seed, size_matr_seed), dtype=float)
+matU = numpy.zeros((size_matr_seed, size_matr_seed), dtype=float) + Ua
 if scenario not in ['E2']:
-    xLport = 0.5 - 1.0 / size_matr_seed
-    xRport = 0.5 + 1.0 / size_matr_seed
+    xo_port = 0.5
+    yo_port = 0
+    xLport = xo_port - 1.0 / size_matr_seed
+    xRport = xo_port + 1.0 / size_matr_seed
+    width_outlet = xRport - xLport
+    matC[size_matr_seed-1][size_matr_seed//2-1] = matC[size_matr_seed-1][size_matr_seed//2] = Co = 100
+    matU[size_matr_seed-1][size_matr_seed//2-1] = matU[size_matr_seed-1][size_matr_seed//2] = Wo
 else:
-    yo = 0.9375 # 0.1875 # 0.125
+    xo_port = 0
+    yo_port = yo = 0.9375 # 15/16
     yBport = yo - 1.0 / size_matr_seed
     yTport = yo + 1.0 / size_matr_seed
-if scenario in ['E2']:
-    # matC[size_matr_seed*7//8-1][size_matr_seed//2-1] = matC[size_matr_seed*7//8][size_matr_seed//2-1] = Co = 100
-    # matC[size_matr_seed*7//8-1][0] = matC[size_matr_seed*7//8][0] = Co = 100
-    # matC[size_matr_seed*13//16-1][0] = matC[size_matr_seed*13//16][0] = Co = 100
+    width_outlet = yTport - yBport
     matC[size_matr_seed*1//16-1][0] = matC[size_matr_seed*1//16][0] = Co = 100
-else:
-    matC[size_matr_seed-1][size_matr_seed//2-1] = matC[size_matr_seed-1][size_matr_seed//2] = Co = 100
-
-# import matplotlib.pyplot as plt
-# plt.pcolor(matC)
-# plt.show()
-
-# if scenario=='D1':
-#     xRport = 0.5 + 2.0 / size_matr_seed  # one extra cell for diagonal jet
-#     matC[size_matr_seed-1][size_matr_seed//2+1] = Co  # one extra cell for diagonal jet
+    matU[size_matr_seed*1//16-1][0] = matU[size_matr_seed*1//16][0] = Wo
 
 meshC = quadtree4.QTree(matrix=matC, propnames=['C','Cnew'])
 meshC.split_BFS(meshC.rootCell, threshold=1, maxDepth=MAX_DEPTH)
 for cel in meshC.leafList:
     meshC.assignDiagNeighbors(cel)
 
-matU = numpy.zeros((size_matr_seed, size_matr_seed), dtype=float) + Ua
-if scenario in ['E2']:
-    # matU[size_matr_seed*7//8-1][size_matr_seed//2-1] = matU[size_matr_seed*7//8][size_matr_seed//2-1] = Wo
-    # matU[size_matr_seed*7//8-1][0] = matU[size_matr_seed*7//8][0] = Wo
-    # matU[size_matr_seed*13//16-1][0] = matU[size_matr_seed*13//16][0] = Wo
-    matU[size_matr_seed*1//16-1][0] = matU[size_matr_seed*1//16][0] = Wo
-else:
-    matU[size_matr_seed-1][size_matr_seed//2-1] = matU[size_matr_seed-1][size_matr_seed//2] = Wo
-# if scenario=='D1':
-#     matU[size_matr_seed-1][size_matr_seed//2+1] = Wo  # one extra cell for diagonal jet
-
-# plt.pcolor(matU)
-# plt.show()
-
-meshU = quadtree4.QTree(matrix=matU, propnames=['U','Unew','W','Wnew','P'])
+meshU = quadtree4.QTree(matrix=matU, propnames=['U','Unew','W','Wnew','P','Pnew'])
 meshU.split_BFS(meshU.rootCell, threshold=0, maxDepth=MAX_DEPTH)
+
 
 
 ## Calculation
@@ -1046,9 +917,6 @@ print('\tMesh C:', len(meshC.leafList), '\tMeshU:', len(meshU.leafList))
 # Post-processing: draw the meshes
 for cell in meshC.leafList:
     Cpnew = cell['Cnew']
-    # color = 1.0 - numpy.log(abs(Ccnew) + 1.0) / numpy.log(Co + 1)      # log scale
-    # color = 1.0 - numpy.log(abs(Ccnew) + 1.0) / numpy.log(Cmax + 1)      # log scale
-    # color = 1.0 - float(Ccnew / Co)
     color = float(Cpnew / Co)  # log scale implemented in color map
     color = 0 if color < 0 else color
     color = 1 if color > 1 else color
@@ -1073,15 +941,27 @@ for cell in meshU.leafList:
     h = cell['side']
     meshU.patchesList.append( [(cell['xL'], cell['yB']), h, h, color, '0'] )
     
+# Visualization
+w = width_outlet
+plot_extent=(0, 31*w, yo-8*w, yo+8*w)
+plot_xticks=[0, 6*w, 12*w, 18*w, 24*w]
+plot_yticks=[yo-6*w, yo-3*w, yo, yo+3*w, yo+6*w]
+
 st1 = f'Concentration at t = {t:.2f}'
 st2 = f'Velocity at t = {t:.2f}'
-DISPLAY_WINDOW = (0, 0.5, 0.875, 1) # (0, 0.5, 0.125, 0.25)  # (0, 0.5, 0.875, 1)
-meshC.draw(st1, grid=True, num=False, arrow=False, patches=True, quiver=False, extent=DISPLAY_WINDOW)
-meshU.draw(st2, grid=True, num=True, arrow=False, patches=False, quiver=False, extent=DISPLAY_WINDOW)
-meshC.draw(st1, grid=True, num=True, arrow=False, patches=False, quiver=False, extent=DISPLAY_WINDOW)
-if scenario in ['C2', 'D2', 'E2']:
+meshC.draw(st1, grid=True, num=False, arrow=False, patches=True, quiver=False, 
+            xo_port=xo_port, yo_port=yo_port,
+            extent=plot_extent, xticks=plot_xticks, yticks=plot_yticks
+        )
+# meshC.draw(st1, grid=True, num=True, arrow=False, patches=False, quiver=False, extent=(0.48, 0.63, 0, 0.15))
+# meshU.draw(st2, grid=True, num=True, arrow=False, patches=False, quiver=False, extent=(0.48, 0.63, 0, 0.15))
+if scenario in ['C1', 'D1', 'E2', 'G2']:
     qvscale = 5E-4
 else:
-    qvscale = 5E-5
-meshU.draw(st2, grid=True, num=False, arrow=False, patches=False, quiver=True, qvscale=qvscale, extent=DISPLAY_WINDOW)
-# Pickle file save mesh temporary failed (max recursion depth exceeded)
+    qvscale = 1E-4
+
+meshU.draw(st2, grid=True, num=False, arrow=False, patches=False, quiver=True, 
+            qvscale=qvscale, color='blue', alpha=0.4,
+            xo_port=xo_port, yo_port=yo_port,
+            extent=plot_extent, xticks=plot_xticks, yticks=plot_yticks
+            )
