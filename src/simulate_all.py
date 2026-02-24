@@ -77,16 +77,18 @@ if scenario.startswith('CUSTOM'):
         nt = 1000
 
 elif scenario=='TEST':
-    Ua = 0.0 / UNIT_LEN
+    Ua = 0.00 / UNIT_LEN
     Wo = 0.5 / UNIT_LEN
     alpha = 90 * numpy.pi / 180
-    Sc = 0.5  # (turbulent) Schmidt number
+    Sc = 0.67  # (0.5-1) Schmidt number, 0.5 -> too diffusive tracer 
+    Ufric = 0.04 * 0.1 * Wo
     dens_deficit = 0
     eps = 0.005 / (UNIT_LEN**2)
     nuh = 0.002 / (UNIT_LEN**2)
     nuv = 0.002 / (UNIT_LEN**2)
+    THETA_C = 1500
     delta_t = 0.002  # 0.5 * h / Wo
-    nt = 10
+    nt = 45_000 # 60_000
 elif scenario=='A1':
     Ua = 0.0 / UNIT_LEN
     Wo = 0.5 / UNIT_LEN
@@ -425,7 +427,7 @@ for timeCounter in range(nt+1):
             if scenario in ['E2']:
                 Ufric = Wo * 0.1
             nu_z = 0.41 * yC * Ufric * (1 - yC / SURFACE)
-            nu_x = nu_z
+            nu_x = 1*nu_z
             Udif *= ratio * nu_x * delta_t / (h * h)
             Wdif *= ratio * nu_z * delta_t / (h * h)
 
@@ -693,37 +695,39 @@ for timeCounter in range(nt+1):
     grid_x, grid_y = numpy.meshgrid(numpy.linspace(0, 1, 200), 
                                     numpy.linspace(0, 5, 100), indexing='ij')
 
+    ## Plot iterpolated grid
+
     # This "grid" is a collection of transects to extract the data from the meshC.
-    ntrans = 5
-    x0, y0, x1, y1 = 0.49, ntrans*(2*width_outlet), 0.51, 2*width_outlet
-    rot = 0
-    if scenario in ['E2']:
-        spacing_samples = (yTport - yBport) / 4
-    else:
-        spacing_samples = (xRport - xLport) / 4
+    # ntrans = 5
+    # x0, y0, x1, y1 = 0.49, ntrans*(2*width_outlet), 0.51, 2*width_outlet
+    # rot = 0
+    # if scenario in ['E2']:
+    #     spacing_samples = (yTport - yBport) / 4
+    # else:
+    #     spacing_samples = (xRport - xLport) / 4
 
-    len_transect = numpy.hypot(x1 - x0, y1 - y0)
-    npoints = int(len_transect / spacing_samples)
-    trans_x, trans_y = numpy.meshgrid(numpy.linspace(x0, x1, npoints),
-                                    numpy.linspace(y0, y1, ntrans), indexing='ij')
+    # len_transect = numpy.hypot(x1 - x0, y1 - y0)
+    # npoints = int(len_transect / spacing_samples)
+    # trans_x, trans_y = numpy.meshgrid(numpy.linspace(x0, x1, npoints),
+    #                                 numpy.linspace(y0, y1, ntrans), indexing='ij')
 
-    trans_xr = numpy.cos(rot) * trans_x + numpy.sin(rot) * trans_y
-    trans_yr = -numpy.sin(rot) * trans_x + numpy.cos(rot) * trans_y
+    # trans_xr = numpy.cos(rot) * trans_x + numpy.sin(rot) * trans_y
+    # trans_yr = -numpy.sin(rot) * trans_x + numpy.cos(rot) * trans_y
 
-    if timeCounter % grid_evol_interval == 0:
-        from scipy.interpolate import griddata
-        grid_C = griddata(points, values, (grid_x, grid_y), method='nearest')  # alternatives: 'cubic', 'nearest', 'linear'
-        transect_C = griddata(points, values, (trans_xr, trans_yr), method='linear')
-        plt.figure(figsize=(6, 3)) 
-        plt.title('Cell level; nearest interpolated')
-        plt.imshow(grid_C.T, extent=(0, 1, 0, 0.5), cmap='cmo.deep', origin='lower')
-        # plt.contour(grid_C.T, extent=(0.46, 0.62, 0, 0.2), origin='lower')
-        plt.colorbar()
-        with open("C_res2.txt", "a") as f:
-            if timeCounter == 0:
-                f.write("\n")
-            numpy.savetxt(f, transect_C.T, fmt='%.3f', delimiter=',')
-            f.write("\n")
+    # if timeCounter % grid_evol_interval == 0:
+    #     from scipy.interpolate import griddata
+    #     grid_C = griddata(points, values, (grid_x, grid_y), method='nearest')  # alternatives: 'cubic', 'nearest', 'linear'
+    #     transect_C = griddata(points, values, (trans_xr, trans_yr), method='linear')
+    #     plt.figure(figsize=(6, 3)) 
+    #     plt.title('Cell level; nearest interpolated')
+    #     plt.imshow(grid_C.T, extent=(0, 1, 0, 0.5), cmap='cmo.deep', origin='lower')
+    #     # plt.contour(grid_C.T, extent=(0.46, 0.62, 0, 0.2), origin='lower')
+    #     plt.colorbar()
+    #     with open("C_res2.txt", "a") as f:
+    #         if timeCounter == 0:
+    #             f.write("\n")
+    #         numpy.savetxt(f, transect_C.T, fmt='%.3f', delimiter=',')
+    #         f.write("\n")
 
     # Updating new values - move before refining
     Cmax = 0
@@ -780,9 +784,9 @@ for cell in meshU.leafList:
 
 # Visualization
 w = width_outlet
-if scenario == 'A1':
-    plot_extent=(0.5-8*w, 0.5+8*w, 0, 20*w)
-    plot_xticks=[0.5-6*w, 0.5-3*w, 0.5, 0.5+3*w, 0.5+6*w]
+if scenario in ['A1', 'TEST']:
+    plot_extent=(0.5-4*w, 0.5+4*w, 0, 20*w)
+    plot_xticks=[0.5-4*w, 0.5-2*w, 0.5, 0.5+2*w, 0.5+4*w]
     plot_yticks=[0, 6*w, 12*w, 18*w]
 elif scenario in ['B1','C1']:
     plot_extent=(0.5-5*w, 0.5+13*w, 0, 28*w)

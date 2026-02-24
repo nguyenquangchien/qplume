@@ -1,27 +1,7 @@
 # file simulate.py
 '''
 Simulate the flow and concentration using quadtree grids
-
-Version history:
-dif_BAK02.py  :  good enough for t = 0
-dif_testGradient.py : introducing the spatial gradient to refine cells.
-simulate_BAK02  : only good before refinement
-
-Note: Since after refinement, cell config. changes so we must find a flexible
-way to deal with cell differential scheme, rather than relying on their
-positions.
-
-simulate_BAK03  : write all the scheme formulas, although have not
-yet test the correctness.
-simulate_BAK04  :  quite symmetric answer but still not tested all cases.
-
-simulate_BAK06  : make a dictionary (wrong way).
-simulate_BAK07  : attempt to differentiate velocity
-simulate_BAK08  : differentiate velocity lead to overflow !?
-simulate_BAK09  : advection seems okay.
-simulate_BAK10  : including viscosity.
-simulate_BAK11  : okay in principle.
-Implmeenting new set of equations. u is computed from continuity eqn.
+Scenario A1
 '''
 
 import quadtree4 as quadtree4
@@ -83,104 +63,104 @@ elif scenario=='A1':
     THETA_C = 1500
     delta_t = 0.002  # 0.5 * h / Wo
     nt = 500 #90_000
-elif scenario=='B1':
-    Ua = 0.1 / UNIT_LEN
-    Wo = 0.5 / UNIT_LEN
-    alpha = 90 * numpy.pi / 180
-    Sc = 0.67  # (turbulent) Schmidt number
-    Ufric = 0.04 * Ua
-    dens_deficit = 0
-    eps = 0.005 / (UNIT_LEN**2)  # will be dynamically adjusted
-    nuh = 0.002 / (UNIT_LEN**2)  # will be dynamically adjusted
-    nuv = 0.002 / (UNIT_LEN**2)  # will be dynamically adjusted
-    delta_t = 0.002  # 0.5 * h / Wo
-    nt = 50_000
-elif scenario=='C1':
-    Ua = 0.5 / UNIT_LEN
-    Wo = 2 / UNIT_LEN
-    alpha = 90 * numpy.pi / 180
-    Sc = 0.5  # (turbulent) Schmidt number
-    Ufric = 0.04 * Ua
-    dens_deficit = 0.025
-    eps = 0.01 / (UNIT_LEN**2)
-    nuh = 0.01 / (UNIT_LEN**2)
-    nuv = 0.01 / (UNIT_LEN**2)
-    THETA_U = 5E-4
-    delta_t = 0.001
-    nt = 50_000
-elif scenario=='D1':
-    Ua = 0.5 / UNIT_LEN
-    Wo = 2 / UNIT_LEN
-    alpha = 45 * numpy.pi / 180
-    Sc = 1  # (turbulent) Schmidt number
-    Ufric = 0.04 * Ua
-    dens_deficit = 0.025
-    eps = 0.01 / (UNIT_LEN**2)
-    nuh = 0.01 / (UNIT_LEN**2)
-    nuv = 0.01 / (UNIT_LEN**2)
-    THETA_U = 1E-3
-    THETA_C = 1500
-    delta_t = 0.001
-    nt = 30_000
-elif scenario=='E1':
-    Ua = 0.5 / UNIT_LEN
-    Wo = 2 / UNIT_LEN
-    alpha = 0 * numpy.pi / 180
-    Sc = 0.5  # (turbulent) Schmidt number
-    Ufric = 0.04 * Ua
-    dens_deficit = 0.025
-    eps = 0.01 / (UNIT_LEN**2)
-    nuh = 0.01 / (UNIT_LEN**2)
-    nuv = 0.01 / (UNIT_LEN**2)
-    THETA_U = 1E-4
-    delta_t = 0.005
-    nt = 1000
-elif scenario=='G1':
-    Ua = 0.5 / UNIT_LEN
-    Wo = 2 / UNIT_LEN
-    alpha = 90 * numpy.pi / 180
-    Sc = 0.5  # (turbulent) Schmidt number
-    Ufric = 0.04 * Ua
-    dens_deficit = 0.010
-    rho_b = 1030
-    rho_s = 1010
-    rho_o = (1 - dens_deficit)*rho_b
-    THETA_U = 5E-4
-    delta_t = 0.002
-    nt = 30_000
-if scenario.startswith('CUSTOM'):
-    try:
-        Ua = float(input('Ambient velocity (m/s) [0.1] = ')) / UNIT_LEN
-    except ValueError:
-        Ua = 0.1 / UNIT_LEN
-    try:
-        Wo = float(input('Jet velocity (/s) [0.5] = ')) / UNIT_LEN
-    except ValueError:
-        Wo = 0.5 / UNIT_LEN
-    try:
-        alpha = float(input('Incline angle jet (degrees) [90] = ')) * numpy.pi / 180
-    except ValueError:
-        alpha = 90 * numpy.pi / 180
-    try:
-        eps = float(input('Eddy diffusivity (m^2/s) [0.01] = '))  / (UNIT_LEN**2)
-    except ValueError:
-        eps = 0.01 / (UNIT_LEN**2)
-    try:
-        nuh = float(input('Horizontal eddy viscosity (m^2/s) [0.01] = '))  / (UNIT_LEN**2)
-    except ValueError:
-        nuh = 0.01 / (UNIT_LEN**2)
-    try:
-        nuv = float(input('Vertical eddy viscosity (m^2/s) [0.01] = '))  / (UNIT_LEN**2)
-    except ValueError:
-        nuv = 0.01 / (UNIT_LEN**2)
-    try:
-        delta_t = float(input('Time step (s) [0.005] = '))
-    except ValueError:
-        delta_t = 0.005
-    try:
-        nt = int(input('# time steps [1000] = '))
-    except ValueError:
-        nt = 1000
+# elif scenario=='B1':
+#     Ua = 0.1 / UNIT_LEN
+#     Wo = 0.5 / UNIT_LEN
+#     alpha = 90 * numpy.pi / 180
+#     Sc = 0.67  # (turbulent) Schmidt number
+#     Ufric = 0.04 * Ua
+#     dens_deficit = 0
+#     eps = 0.005 / (UNIT_LEN**2)  # will be dynamically adjusted
+#     nuh = 0.002 / (UNIT_LEN**2)  # will be dynamically adjusted
+#     nuv = 0.002 / (UNIT_LEN**2)  # will be dynamically adjusted
+#     delta_t = 0.002  # 0.5 * h / Wo
+#     nt = 50_000
+# elif scenario=='C1':
+#     Ua = 0.5 / UNIT_LEN
+#     Wo = 2 / UNIT_LEN
+#     alpha = 90 * numpy.pi / 180
+#     Sc = 0.5  # (turbulent) Schmidt number
+#     Ufric = 0.04 * Ua
+#     dens_deficit = 0.025
+#     eps = 0.01 / (UNIT_LEN**2)
+#     nuh = 0.01 / (UNIT_LEN**2)
+#     nuv = 0.01 / (UNIT_LEN**2)
+#     THETA_U = 5E-4
+#     delta_t = 0.001
+#     nt = 50_000
+# elif scenario=='D1':
+#     Ua = 0.5 / UNIT_LEN
+#     Wo = 2 / UNIT_LEN
+#     alpha = 45 * numpy.pi / 180
+#     Sc = 1  # (turbulent) Schmidt number
+#     Ufric = 0.04 * Ua
+#     dens_deficit = 0.025
+#     eps = 0.01 / (UNIT_LEN**2)
+#     nuh = 0.01 / (UNIT_LEN**2)
+#     nuv = 0.01 / (UNIT_LEN**2)
+#     THETA_U = 1E-3
+#     THETA_C = 1500
+#     delta_t = 0.001
+#     nt = 30_000
+# elif scenario=='E1':
+#     Ua = 0.5 / UNIT_LEN
+#     Wo = 2 / UNIT_LEN
+#     alpha = 0 * numpy.pi / 180
+#     Sc = 0.5  # (turbulent) Schmidt number
+#     Ufric = 0.04 * Ua
+#     dens_deficit = 0.025
+#     eps = 0.01 / (UNIT_LEN**2)
+#     nuh = 0.01 / (UNIT_LEN**2)
+#     nuv = 0.01 / (UNIT_LEN**2)
+#     THETA_U = 1E-4
+#     delta_t = 0.005
+#     nt = 1000
+# elif scenario=='G1':
+#     Ua = 0.5 / UNIT_LEN
+#     Wo = 2 / UNIT_LEN
+#     alpha = 90 * numpy.pi / 180
+#     Sc = 0.5  # (turbulent) Schmidt number
+#     Ufric = 0.04 * Ua
+#     dens_deficit = 0.010
+#     rho_b = 1030
+#     rho_s = 1010
+#     rho_o = (1 - dens_deficit)*rho_b
+#     THETA_U = 5E-4
+#     delta_t = 0.002
+#     nt = 30_000
+# if scenario.startswith('CUSTOM'):
+#     try:
+#         Ua = float(input('Ambient velocity (m/s) [0.1] = ')) / UNIT_LEN
+#     except ValueError:
+#         Ua = 0.1 / UNIT_LEN
+#     try:
+#         Wo = float(input('Jet velocity (/s) [0.5] = ')) / UNIT_LEN
+#     except ValueError:
+#         Wo = 0.5 / UNIT_LEN
+#     try:
+#         alpha = float(input('Incline angle jet (degrees) [90] = ')) * numpy.pi / 180
+#     except ValueError:
+#         alpha = 90 * numpy.pi / 180
+#     try:
+#         eps = float(input('Eddy diffusivity (m^2/s) [0.01] = '))  / (UNIT_LEN**2)
+#     except ValueError:
+#         eps = 0.01 / (UNIT_LEN**2)
+#     try:
+#         nuh = float(input('Horizontal eddy viscosity (m^2/s) [0.01] = '))  / (UNIT_LEN**2)
+#     except ValueError:
+#         nuh = 0.01 / (UNIT_LEN**2)
+#     try:
+#         nuv = float(input('Vertical eddy viscosity (m^2/s) [0.01] = '))  / (UNIT_LEN**2)
+#     except ValueError:
+#         nuv = 0.01 / (UNIT_LEN**2)
+#     try:
+#         delta_t = float(input('Time step (s) [0.005] = '))
+#     except ValueError:
+#         delta_t = 0.005
+#     try:
+#         nt = int(input('# time steps [1000] = '))
+#     except ValueError:
+#         nt = 1000
 
 
 ## Initialization
